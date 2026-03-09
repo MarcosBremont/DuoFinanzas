@@ -589,14 +589,23 @@ function path(){return'couples/'+coupleCode;}
 function subscribe(){
   if(!db||!coupleCode)return;
   const p=path();
-  db.ref(p+'/transactions').on('value',s=>{S.transactions=s.val()||{};renderAll();});
+  console.log('[DuoFinanzas] subscribe() coupleCode=',coupleCode,'path=',p);
+  db.ref(p+'/transactions').on('value',s=>{
+    S.transactions=s.val()||{};
+    console.log('[DuoFinanzas] transactions loaded:',Object.keys(S.transactions).length,'items');
+    renderAll();
+  });
   db.ref(p+'/budgets').on('value',s=>{S.budgets=s.val()||{};renderBudget();});
   db.ref(p+'/goals').on('value',s=>{S.goals=s.val()||{};renderGoals();});
   db.ref('users').on('value',s=>{
     const users=s.val()||{};
+    console.log('[DuoFinanzas] users snapshot, total users:',Object.keys(users).length);
     for(const uid in users){
+      console.log('[DuoFinanzas] user:',uid,'name:',users[uid].name,'coupleCode:',users[uid].coupleCode,'| my coupleCode:',coupleCode,'| isMe:',uid===currentUser.uid);
       if(uid!==currentUser.uid&&users[uid].coupleCode===coupleCode){
-        S.partnerProfile=users[uid];renderPartnerBanner();renderAll();
+        S.partnerProfile=users[uid];
+        console.log('[DuoFinanzas] ✅ partner found:',S.partnerProfile.name);
+        renderPartnerBanner();renderAll();
       }
     }
   });
@@ -741,6 +750,7 @@ function personTxs(allTxs){
   const myName=S.profile.name||'';
   if(activePerson==='partner'){
     const partnerName=S.partnerProfile?S.partnerProfile.name:'';
+    console.log('[DuoFinanzas] personTxs partner mode | partnerName=',partnerName,'| total txs=',allTxs.length,'| addedBy values=',[...new Set(allTxs.map(t=>t.addedBy))]);
     return partnerName?allTxs.filter(t=>t.addedBy===partnerName):[];
   }
   return allTxs.filter(t=>t.addedBy===myName||!t.addedBy);
