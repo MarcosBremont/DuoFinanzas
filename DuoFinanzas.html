@@ -685,8 +685,10 @@ function renderStreakWeek(){
 
 function renderRecentTxs(){
   const c=g('recent-list');if(!c)return;
-  const txs=Object.entries(S.transactions).map(([k,t])=>({...t,id:k})).sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
-  c.innerHTML=txs.length?txs.map(txHtml).join(''):'<div class="empty-state"><div class="empty-icon">💸</div><div class="empty-text">¡Aún no hay movimientos!</div><div style="margin-top:6px;font-size:13px;">Presiona + para añadir uno</div></div>';
+  const all=Object.entries(S.transactions).map(([k,t])=>({...t,id:k}));
+  const txs=personTxs(all).sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  const viewingPartner=activePerson==='partner';
+  c.innerHTML=txs.length?txs.map(tx=>txHtml(tx,viewingPartner)).join(''):'<div class="empty-state"><div class="empty-icon">💸</div><div class="empty-text">¡Aún no hay movimientos!</div><div style="margin-top:6px;font-size:13px;">Presiona + para añadir uno</div></div>';
 }
 
 function txHtml(tx,hideDelete=false){
@@ -727,11 +729,11 @@ function filterPerson(p,btn){
 }
 function personTxs(allTxs){
   const myName=S.profile.name||'';
-  const partnerName=S.partnerProfile?S.partnerProfile.name:'';
-  if(!partnerName)return allTxs;
-  return activePerson==='me'
-    ?allTxs.filter(t=>t.addedBy===myName||!t.addedBy)
-    :allTxs.filter(t=>t.addedBy===partnerName);
+  if(activePerson==='partner'){
+    const partnerName=S.partnerProfile?S.partnerProfile.name:'';
+    return partnerName?allTxs.filter(t=>t.addedBy===partnerName):[];
+  }
+  return allTxs.filter(t=>t.addedBy===myName||!t.addedBy);
 }
 
 function renderBudget(){
