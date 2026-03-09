@@ -486,11 +486,15 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">📷 Escanear Factura</div>
-    <input type="file" id="scan-file-input" accept="image/*" capture="environment" style="display:none;" onchange="handleScanFile(event)">
+    <input type="file" id="scan-file-camera" accept="image/*" capture="environment" style="display:none;" onchange="handleScanFile(event)">
+    <input type="file" id="scan-file-gallery" accept="image/*" style="display:none;" onchange="handleScanFile(event)">
     <div id="scan-preview-area" class="scan-preview-area">
       <div class="scan-placeholder"><div class="scan-placeholder-icon">🧾</div><div>Toma una foto de tu factura</div></div>
     </div>
-    <button class="scan-upload-btn" onclick="g('scan-file-input').click()">📷 Tomar foto / Subir imagen</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <button class="scan-upload-btn" style="margin-bottom:0;" onclick="g('scan-file-camera').click()">📷 Tomar foto</button>
+      <button class="scan-upload-btn" style="margin-bottom:0;" onclick="g('scan-file-gallery').click()">🖼️ Desde galería</button>
+    </div>
     <div id="scan-ocr-section" style="display:none;">
       <div id="scan-ocr-loading" class="ocr-loading">
         <div class="ocr-spinner"></div>
@@ -1008,7 +1012,7 @@ function openScanModal(){
   g('scan-preview-area').innerHTML='<div class="scan-placeholder"><div class="scan-placeholder-icon">🧾</div><div>Toma una foto de tu factura</div></div>';
   g('scan-ocr-section').style.display='none';
   g('scan-fields').style.display='none';
-  g('scan-file-input').value='';
+  g('scan-file-camera').value='';g('scan-file-gallery').value='';
   scanSelCat='food';
   openModal('scan-modal');
 }
