@@ -1052,33 +1052,41 @@ async function handleScanFile(e){
 function extractReceiptData(text){
   const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
   let amount=0;
-  // Líneas a ignorar para el monto (efectivo, cambio, vuelto, ITBIS, descuento)
+  // Líneas a ignorar: efectivo, cambio, ITBIS, etc.
   const ignoreLine=/efectivo|cambio|vuelto|itbis|descuento|propina|recibo|rnc|nif/i;
-  // Helper: últmo número de una línea (columna VALOR en facturas de dos columnas)
-  function lastNumInLine(line){
-    const nums=[...line.matchAll(/[\d]+(?:[,\.]\d+)*/g)]
+  // Extrae todos los números válidos de un texto
+  function numsIn(t){
+    return[...t.matchAll(/[\d]+(?:[,\.]\d+)*/g)]
       .map(m=>parseFloat(m[0].replace(/,(?=\d{3})/g,'').replace(',','.')))
       .filter(n=>n>0&&n<9999999);
-    return nums.length?nums[nums.length-1]:0;
   }
-  // Estrategia 1: buscar línea con "TOTAL A PAGAR" o "TOTAL" y tomar el ÚLTIMO número
-  const totalPats=[/TOTAL\s+A\s+PAGAR/i,/GRAN\s+TOTAL/i,/TOTAL\s+GENERAL/i,/TOTAL\s+FACTURA/i,/TOTAL\s*[:=]/i,/IMPORTE\s*[:=]/i,/MONTO\s*[:=]/i];
+  // Estrategia 1: encontrar línea de TOTAL, tomar el MAX entre esa línea y las 2 siguientes
+  // (el OCR a veces pone el valor en columna separada = línea siguiente)
+  const totalPats=[/TOTAL\s+A\s+PAGAR/i,/GRAN\s+TOTAL/i,/TOTAL\s+GENERAL/i,/TOTAL\s+FACTURA/i];
   for(const p of totalPats){
-    const line=lines.find(l=>p.test(l)&&!ignoreLine.test(l));
-    if(line){const v=lastNumInLine(line);if(v>0){amount=v;break;}}
+    const idx=lines.findIndex(l=>p.test(l)&&!ignoreLine.test(l));
+    if(idx>=0){
+      // Junta hasta 3 líneas desde el TOTAL, excluyendo líneas de efectivo/cambio/itbis
+      const chunk=lines.slice(idx,idx+3).filter(l=>!ignoreLine.test(l)).join(' ');
+      const nums=numsIn(chunk);
+      if(nums.length){amount=Math.max(...nums);break;}
+    }
   }
-  // Estrategia 2: buscar línea que diga solo "TOTAL" y tomar el último número
+  // Estrategia 2: línea que empiece con TOTAL (no ITBIS), mismo enfoque
   if(!amount){
-    const line=lines.find(l=>/^\s*TOTAL\s/i.test(l)&&!ignoreLine.test(l));
-    if(line){const v=lastNumInLine(line);if(v>0)amount=v;}
+    const idx=lines.findIndex(l=>/^\s*TOTAL\b/i.test(l)&&!ignoreLine.test(l));
+    if(idx>=0){
+      const chunk=lines.slice(idx,idx+3).filter(l=>!ignoreLine.test(l)).join(' ');
+      const nums=numsIn(chunk);
+      if(nums.length)amount=Math.max(...nums);
+    }
   }
-  // Estrategia 3: mayor número del texto excluyendo líneas de efectivo/cambio/ITBIS
+  // Estrategia 3: máximo número del texto ignorando líneas de efectivo/cambio/ITBIS
   if(!amount){
     const nums=lines
       .filter(l=>!ignoreLine.test(l))
-      .flatMap(l=>[...l.matchAll(/\b\d{1,3}(?:[,\.]\d{3})*(?:[,\.]\d{1,2})?\b/g)])
-      .map(m=>parseFloat(m[0].replace(/,(?=\d{3})/g,'').replace(',','.')))
-      .filter(n=>n>=10&&n<9999999);
+      .flatMap(l=>numsIn(l))
+      .filter(n=>n>=10);
     if(nums.length)amount=Math.max(...nums);
   }
   let desc='';
