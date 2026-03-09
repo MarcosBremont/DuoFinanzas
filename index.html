@@ -187,6 +187,10 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
 .avatar-couple.me{background:linear-gradient(135deg,var(--primary-dark),var(--primary-light))}
 .avatar-couple.partner{background:linear-gradient(135deg,#be185d,var(--secondary))}
 .code-box{background:var(--bg3);border:1.5px dashed var(--primary-light);border-radius:10px;padding:10px 16px;font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;color:var(--primary-light);text-align:center;letter-spacing:3px;margin:8px 0}
+/* CHARTS */
+.chart-legend-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(59,31,106,.4)}
+.chart-legend-row:last-child{border-bottom:none}
+.chart-legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
 /* VERSION & ABOUT */
 .version-badge{display:inline-flex;align-items:center;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:800;color:var(--primary-light);cursor:pointer;transition:all .2s}
 .version-badge:active{transform:scale(.95)}
@@ -376,6 +380,26 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
     </div>
     <div class="xp-bar-wrap" style="height:14px;"><div class="xp-bar" id="budget-overall-bar" style="width:0%"></div></div>
   </div>
+  <!-- CHART CARD -->
+  <div class="card" id="chart-card">
+    <div class="card-title">ANÁLISIS VISUAL</div>
+    <div class="tabs" style="margin:0 0 16px;">
+      <button class="tab active" id="chart-tab-donut" onclick="switchChart('donut',this)">🥧 Categorías</button>
+      <button class="tab" id="chart-tab-trend" onclick="switchChart('trend',this)">📈 Tendencia</button>
+    </div>
+    <div id="chart-loading" style="display:none;text-align:center;padding:24px;">
+      <div class="ocr-spinner" style="margin:0 auto;"></div>
+      <div style="font-size:13px;color:var(--text3);margin-top:10px;">Cargando gráficas...</div>
+    </div>
+    <div id="chart-donut-wrap">
+      <canvas id="chart-donut" style="max-height:240px;"></canvas>
+    </div>
+    <div id="chart-trend-wrap" style="display:none;">
+      <canvas id="chart-trend" style="max-height:220px;"></canvas>
+    </div>
+    <div id="chart-legend" style="margin-top:14px;"></div>
+  </div>
+
   <div class="card" id="budget-bars"></div>
 </div>
 
@@ -888,6 +912,7 @@ function personTxs(allTxs){
 
 function renderBudget(){
   updLabel('budget-month-label');
+  renderCharts();
   const key=vYear+'_'+vMonth,budget=S.budgets[key]||{},txs=personTxs(monthTxs(vYear,vMonth)).filter(t=>t.type==='expense');
   const totalB=budget.total||0;let spent=0;txs.forEach(t=>spent+=t.amount);
   el('budget-spent',fmt(spent));el('budget-total',fmt(totalB));
@@ -1073,6 +1098,93 @@ function prevMonth(){if(vMonth===0){vMonth=11;vYear--;}else vMonth--;renderTrans
 function nextMonth(){if(vMonth===11){vMonth=0;vYear++;}else vMonth++;renderTransactions();}
 function prevMonthB(){if(vMonth===0){vMonth=11;vYear--;}else vMonth--;renderBudget();}
 function nextMonthB(){if(vMonth===11){vMonth=0;vYear++;}else vMonth++;renderBudget();}
+
+// ════════════════════════════════════
+//   CHARTS
+// ════════════════════════════════════
+let chartDonut=null,chartTrend=null,chartMode='donut';
+const CHART_COLORS=['#a855f7','#ec4899','#f59e0b','#10b981','#3b82f6','#f87171','#34d399','#fbbf24','#8b5cf6'];
+
+function switchChart(mode){
+  chartMode=mode;
+  g('chart-donut-wrap').style.display=mode==='donut'?'block':'none';
+  g('chart-trend-wrap').style.display=mode==='trend'?'block':'none';
+  g('chart-legend').style.display=mode==='donut'?'block':'none';
+  document.querySelectorAll('#chart-card .tab').forEach(t=>t.classList.remove('active'));
+  g('chart-tab-'+mode).classList.add('active');
+}
+
+async function renderCharts(){
+  if(!g('chart-card'))return;
+  g('chart-loading').style.display='block';
+  g('chart-donut-wrap').style.display='none';
+  g('chart-trend-wrap').style.display='none';
+  g('chart-legend').innerHTML='';
+  if(!window.Chart){
+    try{
+      await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);});
+    }catch(e){g('chart-loading').style.display='none';return;}
+  }
+  g('chart-loading').style.display='none';
+  g('chart-donut-wrap').style.display=chartMode==='donut'?'block':'none';
+  g('chart-trend-wrap').style.display=chartMode==='trend'?'block':'none';
+  g('chart-legend').style.display=chartMode==='donut'?'block':'none';
+
+  // — Donut: gastos por categoría del mes —
+  const txs=personTxs(monthTxs(vYear,vMonth)).filter(t=>t.type==='expense');
+  const catTotals={};
+  txs.forEach(t=>{catTotals[t.category]=(catTotals[t.category]||0)+t.amount;});
+  const catEntries=Object.entries(catTotals).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  if(chartDonut){chartDonut.destroy();chartDonut=null;}
+  if(catEntries.length===0){
+    g('chart-donut-wrap').innerHTML='<div class="empty-state" style="padding:24px;"><div class="empty-icon" style="font-size:36px;">🥧</div><div class="empty-text" style="font-size:14px;">Sin gastos este mes</div></div>';
+  } else {
+    if(!g('chart-donut')){const cv=document.createElement('canvas');cv.id='chart-donut';cv.style.maxHeight='240px';g('chart-donut-wrap').appendChild(cv);}
+    const labels=catEntries.map(([k])=>{const c=getCat('expense',k);return c.emoji+' '+c.label;});
+    const data=catEntries.map(([,v])=>v);
+    const colors=catEntries.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]);
+    const total=data.reduce((a,b)=>a+b,0);
+    const ctx=g('chart-donut').getContext('2d');
+    const centerPlugin={id:'centerText',afterDraw(chart){
+      const{ctx:c,chartArea:{top,bottom,left,right}}=chart;
+      const cx=(left+right)/2,cy=(top+bottom)/2;
+      c.save();c.textAlign='center';c.textBaseline='middle';
+      c.fillStyle='#f3e8ff';c.font='bold 13px Nunito';c.fillText('TOTAL',cx,cy-12);
+      c.fillStyle='#a855f7';c.font='bold 16px Baloo\\ 2,cursive';c.fillText(fmt(total),cx,cy+8);
+      c.restore();
+    }};
+    chartDonut=new Chart(ctx,{
+      type:'doughnut',
+      data:{labels,datasets:[{data,backgroundColor:colors,borderColor:'rgba(15,5,32,.8)',borderWidth:2,hoverOffset:8}]},
+      options:{responsive:true,cutout:'60%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.parsed)+' ('+Math.round(c.parsed/total*100)+'%)'}}}},
+      plugins:[centerPlugin]
+    });
+    g('chart-legend').innerHTML=catEntries.map(([k,v],i)=>`<div class="chart-legend-row"><div class="chart-legend-dot" style="background:${colors[i]};"></div><div style="flex:1;font-size:13px;color:var(--text);">${labels[i]}</div><div style="font-size:13px;font-weight:800;color:${colors[i]};">${fmt(v)}</div><div style="font-size:11px;color:var(--text3);min-width:36px;text-align:right;">${Math.round(v/total*100)}%</div></div>`).join('');
+  }
+
+  // — Barras: tendencia últimos 6 meses —
+  const meses=[];
+  for(let i=5;i>=0;i--){let m=vMonth-i,y=vYear;if(m<0){m+=12;y--;}meses.push({y,m});}
+  const ingData=meses.map(({y,m})=>personTxs(monthTxs(y,m)).filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0));
+  const gasData=meses.map(({y,m})=>personTxs(monthTxs(y,m)).filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0));
+  const tLabels=meses.map(({m})=>MONTHS[m].slice(0,3));
+  if(chartTrend){chartTrend.destroy();chartTrend=null;}
+  const ctx2=g('chart-trend').getContext('2d');
+  chartTrend=new Chart(ctx2,{
+    type:'bar',
+    data:{labels:tLabels,datasets:[
+      {label:'Ingresos',data:ingData,backgroundColor:'rgba(52,211,153,.65)',borderColor:'#34d399',borderWidth:1,borderRadius:6},
+      {label:'Gastos',data:gasData,backgroundColor:'rgba(248,113,113,.65)',borderColor:'#f87171',borderWidth:1,borderRadius:6}
+    ]},
+    options:{responsive:true,plugins:{
+      legend:{labels:{color:'#c4b5fd',font:{family:'Nunito',size:12}}},
+      tooltip:{callbacks:{label:c=>' '+c.dataset.label+': '+fmt(c.parsed.y)}}
+    },scales:{
+      x:{ticks:{color:'#9d84c4'},grid:{color:'rgba(59,31,106,.3)'}},
+      y:{ticks:{color:'#9d84c4',callback:v=>fmt(v)},grid:{color:'rgba(59,31,106,.3)'}}
+    }}
+  });
+}
 function updLabel(id2){el(id2,MONTHS[vMonth]+' '+vYear);}
 function monthTxs(y,m){return Object.entries(S.transactions).map(([k,t])=>({...t,id:k})).filter(t=>{const p=t.date.split('-');return parseInt(p[0])===y&&parseInt(p[1])-1===m;});}
 function filterTx(type,btn){txFilter=type;document.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderTransactions();}
