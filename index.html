@@ -187,6 +187,16 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
 .avatar-couple.me{background:linear-gradient(135deg,var(--primary-dark),var(--primary-light))}
 .avatar-couple.partner{background:linear-gradient(135deg,#be185d,var(--secondary))}
 .code-box{background:var(--bg3);border:1.5px dashed var(--primary-light);border-radius:10px;padding:10px 16px;font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;color:var(--primary-light);text-align:center;letter-spacing:3px;margin:8px 0}
+/* VERSION & ABOUT */
+.version-badge{display:inline-flex;align-items:center;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:800;color:var(--primary-light);cursor:pointer;transition:all .2s}
+.version-badge:active{transform:scale(.95)}
+.about-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all .2s}
+.about-card:active{transform:scale(.98)}
+.changelog-entry{padding:12px 0;border-bottom:1px solid rgba(59,31,106,.5)}
+.changelog-entry:last-child{border-bottom:none}
+.changelog-version{font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:var(--primary-light);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.changelog-tag{font-family:'Nunito',sans-serif;font-size:10px;font-weight:700;color:var(--text3);background:var(--bg3);border-radius:20px;padding:2px 8px;border:1px solid var(--border)}
+.changelog-item{font-size:13px;color:var(--text2);padding:3px 0 3px 10px;border-left:2px solid var(--border);margin-bottom:2px}
 /* FAB MENU */
 .fab-action-btn{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--border);border-radius:30px;padding:10px 16px;color:var(--text);font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:var(--shadow);transition:all .2s}
 .fab-action-btn:active{transform:scale(.96)}
@@ -270,7 +280,10 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
       <div class="top-title" id="home-greeting">¡Hola! 👋</div>
       <div style="font-size:12px;color:var(--text3);margin-top:2px;" id="home-date"></div>
     </div>
-    <div class="streak-badge">🔥 <span id="streak-count">0</span></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+      <div class="streak-badge">🔥 <span id="streak-count">0</span></div>
+      <button class="version-badge" onclick="openModal('about-modal')">v1.4.0</button>
+    </div>
   </div>
   <div class="person-toggle" style="padding:0 16px 8px;">
     <button class="person-btn active" onclick="filterPerson('me',this)">👤 Yo</button>
@@ -412,6 +425,16 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
   </div>
   <div class="section-header"><div class="section-title">🏆 Logros</div></div>
   <div id="achievements-list" style="padding:0 16px 16px;"></div>
+  <div class="section-header" style="margin-top:4px;"><div class="section-title">ℹ️ Acerca de</div></div>
+  <div style="padding:0 16px 32px;">
+    <div class="about-card" onclick="openModal('about-modal')">
+      <div>
+        <div style="font-size:14px;font-weight:800;color:var(--text);">DúoFinanzas</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Versión 1.4.0 · Ver novedades</div>
+      </div>
+      <div style="font-size:22px;">💑</div>
+    </div>
+  </div>
 </div>
 
 <!-- ══════════ NAV ══════════ -->
@@ -486,6 +509,57 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
 </div>
 
 <!-- ══════════ SCAN MODAL ══════════ -->
+<!-- ══════════ ABOUT MODAL ══════════ -->
+<div class="modal-overlay" id="about-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;padding:4px 0 20px;">
+      <div style="font-size:44px;margin-bottom:6px;">💑</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:26px;font-weight:900;background:linear-gradient(135deg,var(--primary-light),var(--secondary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">DúoFinanzas</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:2px;">Finanzas en pareja, de forma divertida 🎮</div>
+      <div style="margin-top:10px;display:inline-block;background:rgba(124,58,237,.2);border:1px solid var(--primary-light);border-radius:20px;padding:4px 16px;font-size:13px;font-weight:800;color:var(--primary-light);">v1.4.0</div>
+    </div>
+    <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">📋 Historial de versiones</div>
+    <div>
+      <div class="changelog-entry">
+        <div class="changelog-version">v1.4.0 <span class="changelog-tag">Mar 2026</span></div>
+        <div class="changelog-item">ℹ️ Sección "Acerca de" con historial de versiones</div>
+        <div class="changelog-item">🔢 Número de versión visible en el inicio</div>
+      </div>
+      <div class="changelog-entry">
+        <div class="changelog-version">v1.3.0 <span class="changelog-tag">Mar 2026</span></div>
+        <div class="changelog-item">🚨 Retirar dinero de metas de ahorro</div>
+        <div class="changelog-item">🔃 Movimientos ordenados por fecha exacta (timestamp)</div>
+      </div>
+      <div class="changelog-entry">
+        <div class="changelog-version">v1.2.1 <span class="changelog-tag">Mar 2026</span></div>
+        <div class="changelog-item">🛠️ Mejora en extracción del monto de facturas escaneadas</div>
+        <div class="changelog-item">🛠️ Ignorar líneas de efectivo/cambio/ITBIS en el OCR</div>
+      </div>
+      <div class="changelog-entry">
+        <div class="changelog-version">v1.2.0 <span class="changelog-tag">Mar 2026</span></div>
+        <div class="changelog-item">🖼️ Opción de elegir imagen desde la galería al escanear</div>
+      </div>
+      <div class="changelog-entry">
+        <div class="changelog-version">v1.1.0 <span class="changelog-tag">Mar 2026</span></div>
+        <div class="changelog-item">📷 Módulo de escaneo de facturas con OCR (Tesseract.js)</div>
+        <div class="changelog-item">🤖 Detección automática de monto, descripción y categoría</div>
+        <div class="changelog-item">➕ FAB expandible con menú de acciones</div>
+      </div>
+      <div class="changelog-entry">
+        <div class="changelog-version">v1.0.0 <span class="changelog-tag">Feb 2026</span></div>
+        <div class="changelog-item">🚀 Lanzamiento inicial</div>
+        <div class="changelog-item">💳 Registro de gastos e ingresos compartidos</div>
+        <div class="changelog-item">📊 Presupuesto mensual por categoría</div>
+        <div class="changelog-item">🎯 Metas de ahorro en pareja</div>
+        <div class="changelog-item">🏆 Sistema de XP, niveles y logros</div>
+        <div class="changelog-item">🔥 Racha diaria y estadísticas de pareja</div>
+      </div>
+    </div>
+    <button class="btn btn-secondary" onclick="closeModal('about-modal')" style="margin-top:16px;">Cerrar</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="scan-modal">
   <div class="modal">
     <div class="modal-handle"></div>
