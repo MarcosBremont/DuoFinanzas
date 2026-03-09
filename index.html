@@ -474,9 +474,13 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
 <div class="modal-overlay" id="add-goal-modal">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-title">💰 Añadir a <span id="goal-add-name"></span></div>
-    <div class="form-group"><label class="form-label">Monto a añadir</label><input type="number" class="amount-input" id="goal-add-amount" placeholder="0.00"></div>
-    <button class="btn btn-success" onclick="addToGoal()" style="margin-top:8px;">+ Añadir ahorro</button>
+    <div class="modal-title" id="goal-modal-title">💰 <span id="goal-add-name"></span></div>
+    <div class="type-selector" style="margin-bottom:16px;">
+      <button class="type-btn selected income" id="goal-mode-add" onclick="setGoalMode('add')">💰 Añadir</button>
+      <button class="type-btn" id="goal-mode-withdraw" onclick="setGoalMode('withdraw')">🚨 Retirar</button>
+    </div>
+    <div class="form-group"><label class="form-label" id="goal-amount-label">Monto a añadir</label><input type="number" class="amount-input" id="goal-add-amount" placeholder="0.00"></div>
+    <button class="btn btn-success" id="goal-action-btn" onclick="addToGoal()" style="margin-top:8px;">+ Añadir ahorro</button>
     <button class="btn btn-secondary" onclick="closeModal('add-goal-modal')">Cancelar</button>
   </div>
 </div>
@@ -836,7 +840,7 @@ function renderGoals(){
   if(!goals.length){c.innerHTML='<div class="empty-state" style="padding:60px 20px;"><div class="empty-icon">🎯</div><div class="empty-text">¡Sin metas aún!</div><div style="margin-top:6px;font-size:13px;color:var(--text3);">Crea tu primera meta de ahorro</div></div>';return;}
   c.innerHTML=goals.map(g2=>{
     const pct=Math.min(100,g2.target>0?((g2.current||0)/g2.target)*100:0),done=pct>=100;
-    return`<div class="goal-card" style="margin:0 16px 12px;${done?'border-color:var(--gold);':''}">${done?'<div style="position:absolute;top:8px;right:12px;font-size:22px;">🏆</div>':''}<div class="goal-header"><div class="goal-emoji">${g2.emoji||'🎯'}</div><div><div class="goal-name">${esc(g2.name)}</div><div class="goal-target">Meta: ${fmt(g2.target)}${g2.deadline?' · '+fmtDate(g2.deadline):''}</div></div></div><div class="goal-bar-wrap"><div class="goal-bar" style="width:${pct}%"></div></div><div class="goal-progress-text"><span style="color:var(--accent2);">${fmt(g2.current||0)}</span><span style="color:var(--text3);">${Math.round(pct)}%</span></div>${!done?`<button class="goal-add-btn" onclick="openAddToGoal('${g2.id}','${esc(g2.name)}')">+ Añadir dinero</button>`:'<div style="color:var(--gold);font-size:13px;font-weight:800;margin-top:6px;">¡Meta alcanzada! 🎉</div>'}</div>`;
+    return`<div class="goal-card" style="margin:0 16px 12px;${done?'border-color:var(--gold);':''}">${done?'<div style="position:absolute;top:8px;right:12px;font-size:22px;">🏆</div>':''}<div class="goal-header"><div class="goal-emoji">${g2.emoji||'🎯'}</div><div><div class="goal-name">${esc(g2.name)}</div><div class="goal-target">Meta: ${fmt(g2.target)}${g2.deadline?' · '+fmtDate(g2.deadline):''}</div></div></div><div class="goal-bar-wrap"><div class="goal-bar" style="width:${pct}%"></div></div><div class="goal-progress-text"><span style="color:var(--accent2);">${fmt(g2.current||0)}</span><span style="color:var(--text3);">${Math.round(pct)}%</span></div>${!done?`<div style="display:flex;gap:8px;margin-top:8px;"><button class="goal-add-btn" onclick="openAddToGoal('${g2.id}','${esc(g2.name)}','add')">+ Añadir</button><button class="goal-add-btn" style="background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.3);color:var(--red);" onclick="openAddToGoal('${g2.id}','${esc(g2.name)}','withdraw')">- Retirar</button></div>`:'<div style="color:var(--gold);font-size:13px;font-weight:800;margin-top:6px;">¡Meta alcanzada! 🎉</div>'}</div>`;
   }).join('');
 }
 
@@ -934,16 +938,41 @@ async function saveGoal(){
   unlock('first_goal');addXP(25);await saveUserData();
   closeModal('goal-modal');showToast('🎯 ¡Meta creada!');
 }
-function openAddToGoal(goalId,goalName){curGoalId=goalId;el('goal-add-name',goalName);g('goal-add-amount').value='';openModal('add-goal-modal');}
+let goalMode='add';
+function setGoalMode(m){
+  goalMode=m;
+  g('goal-mode-add').className='type-btn'+(m==='add'?' selected income':'');
+  g('goal-mode-withdraw').className='type-btn'+(m==='withdraw'?' selected expense':'');
+  el('goal-modal-title',(m==='add'?'💰 ':'🚨 ')+g('goal-add-name').textContent);
+  el('goal-amount-label',m==='add'?'Monto a añadir':'Monto a retirar');
+  const btn=g('goal-action-btn');
+  btn.textContent=m==='add'?'+ Añadir ahorro':'- Retirar dinero';
+  btn.style.background=m==='withdraw'?'linear-gradient(135deg,var(--red),#f97316)':'';
+  btn.className='btn '+(m==='add'?'btn-success':'');
+}
+function openAddToGoal(goalId,goalName,mode='add'){
+  curGoalId=goalId;
+  el('goal-add-name',goalName);
+  g('goal-add-amount').value='';
+  setGoalMode(mode);
+  openModal('add-goal-modal');
+}
 async function addToGoal(){
   const amount=parseFloat(g('goal-add-amount').value);
   if(!amount||amount<=0){showToast('⚠️ Ingresa un monto válido');return;}
   const goal=S.goals[curGoalId];if(!goal)return;
-  const newVal=(goal.current||0)+amount;
+  let newVal;
+  if(goalMode==='withdraw'){
+    newVal=Math.max(0,(goal.current||0)-amount);
+    showToast('🚨 -'+fmt(amount)+' retirado de la meta');
+  } else {
+    newVal=(goal.current||0)+amount;
+    if(newVal>=goal.target){unlock('goal_complete');showToast('🏆 ¡Meta alcanzada! ¡Felicidades!');}
+    else showToast('💰 +'+fmt(amount)+' añadido a la meta');
+    addXP(10);
+  }
   await db.ref(path()+'/goals/'+curGoalId+'/current').set(newVal);
-  if(newVal>=goal.target){unlock('goal_complete');showToast('🏆 ¡Meta alcanzada! ¡Felicidades!');}
-  else showToast('💰 +'+fmt(amount)+' añadido a la meta');
-  addXP(10);await saveUserData();closeModal('add-goal-modal');
+  await saveUserData();closeModal('add-goal-modal');
 }
 
 // ════════════════════════════════════
