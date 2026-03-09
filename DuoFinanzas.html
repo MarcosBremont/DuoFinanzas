@@ -575,13 +575,13 @@ async function loadUserData(){
 
 async function saveUserData(){
   if(!currentUser)return;
-  try{
-    await db.ref('users/'+currentUser.uid).set({
-      coupleCode,name:S.profile.name,xp:S.profile.xp||0,
-      streak:S.profile.streak||0,lastActiveDate:S.profile.lastActiveDate||'',
-      achievements:S.profile.achievements||[],txCount:S.profile.txCount||0
-    });
-  }catch(e){console.error(e);}
+  const data={coupleCode,name:S.profile.name,xp:S.profile.xp||0,
+    streak:S.profile.streak||0,lastActiveDate:S.profile.lastActiveDate||'',
+    achievements:S.profile.achievements||[],txCount:S.profile.txCount||0};
+  try{await db.ref('users/'+currentUser.uid).set(data);}catch(e){console.error('saveUserData users:',e);}
+  if(coupleCode){
+    try{await db.ref('couples/'+coupleCode+'/profiles/'+currentUser.uid).set(data);}catch(e){console.error('saveUserData profiles:',e);}
+  }
 }
 
 function path(){return'couples/'+coupleCode;}
@@ -597,13 +597,12 @@ function subscribe(){
   });
   db.ref(p+'/budgets').on('value',s=>{S.budgets=s.val()||{};renderBudget();});
   db.ref(p+'/goals').on('value',s=>{S.goals=s.val()||{};renderGoals();});
-  db.ref('users').on('value',s=>{
-    const users=s.val()||{};
-    console.log('[DuoFinanzas] users snapshot, total users:',Object.keys(users).length);
-    for(const uid in users){
-      console.log('[DuoFinanzas] user:',uid,'name:',users[uid].name,'coupleCode:',users[uid].coupleCode,'| my coupleCode:',coupleCode,'| isMe:',uid===currentUser.uid);
-      if(uid!==currentUser.uid&&users[uid].coupleCode===coupleCode){
-        S.partnerProfile=users[uid];
+  db.ref(p+'/profiles').on('value',s=>{
+    const profiles=s.val()||{};
+    console.log('[DuoFinanzas] profiles snapshot, uids:',Object.keys(profiles));
+    for(const uid in profiles){
+      if(uid!==currentUser.uid){
+        S.partnerProfile=profiles[uid];
         console.log('[DuoFinanzas] ✅ partner found:',S.partnerProfile.name);
         renderPartnerBanner();renderAll();
       }
