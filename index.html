@@ -846,6 +846,11 @@ async function deleteTx(id){
   await db.ref(path()+'/transactions/'+id).remove();
   showToast('🗑️ Transacción eliminada');
 }
+async function deleteGoal(id){
+  if(!confirm('¿Eliminar esta meta de ahorro?'))return;
+  await db.ref(path()+'/goals/'+id).remove();
+  showToast('🗑️ Meta eliminada');
+}
 
 function renderTransactions(){
   updLabel('tx-month-label');
@@ -914,7 +919,7 @@ function renderGoals(){
   if(!goals.length){c.innerHTML='<div class="empty-state" style="padding:60px 20px;"><div class="empty-icon">🎯</div><div class="empty-text">¡Sin metas aún!</div><div style="margin-top:6px;font-size:13px;color:var(--text3);">Crea tu primera meta de ahorro</div></div>';return;}
   c.innerHTML=goals.map(g2=>{
     const pct=Math.min(100,g2.target>0?((g2.current||0)/g2.target)*100:0),done=pct>=100;
-    return`<div class="goal-card" style="margin:0 16px 12px;${done?'border-color:var(--gold);':''}">${done?'<div style="position:absolute;top:8px;right:12px;font-size:22px;">🏆</div>':''}<div class="goal-header"><div class="goal-emoji">${g2.emoji||'🎯'}</div><div><div class="goal-name">${esc(g2.name)}</div><div class="goal-target">Meta: ${fmt(g2.target)}${g2.deadline?' · '+fmtDate(g2.deadline):''}</div></div></div><div class="goal-bar-wrap"><div class="goal-bar" style="width:${pct}%"></div></div><div class="goal-progress-text"><span style="color:var(--accent2);">${fmt(g2.current||0)}</span><span style="color:var(--text3);">${Math.round(pct)}%</span></div>${!done?`<div style="display:flex;gap:8px;margin-top:8px;"><button class="goal-add-btn" onclick="openAddToGoal('${g2.id}','${esc(g2.name)}','add')">+ Añadir</button><button class="goal-add-btn" style="background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.3);color:var(--red);" onclick="openAddToGoal('${g2.id}','${esc(g2.name)}','withdraw')">- Retirar</button></div>`:'<div style="color:var(--gold);font-size:13px;font-weight:800;margin-top:6px;">¡Meta alcanzada! 🎉</div>'}</div>`;
+    return`<div class="goal-card" style="margin:0 16px 12px;${done?'border-color:var(--gold);':''}">${done?'<div style="position:absolute;top:8px;right:12px;font-size:22px;">🏆</div>':''}<div class="goal-header"><div class="goal-emoji">${g2.emoji||'🎯'}</div><div style="flex:1;"><div class="goal-name">${esc(g2.name)}</div><div class="goal-target">Meta: ${fmt(g2.target)}${g2.deadline?' · '+fmtDate(g2.deadline):''}</div></div><button onclick="deleteGoal('${g2.id}')" class="tx-delete" title="Eliminar meta" style="align-self:flex-start;">🗑️</button></div><div class="goal-bar-wrap"><div class="goal-bar" style="width:${pct}%"></div></div><div class="goal-progress-text"><span style="color:var(--accent2);">${fmt(g2.current||0)}</span><span style="color:var(--text3);">${Math.round(pct)}%</span></div>${!done?`<div style="display:flex;gap:8px;margin-top:8px;"><button class="goal-add-btn" onclick="openAddToGoal('${g2.id}','${esc(g2.name)}','add')">+ Añadir</button><button class="goal-add-btn" style="background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.3);color:var(--red);" onclick="openAddToGoal('${g2.id}','${esc(g2.name)}','withdraw')">- Retirar</button></div>`:'<div style="color:var(--gold);font-size:13px;font-weight:800;margin-top:6px;">¡Meta alcanzada! 🎉</div>'}</div>`;
   }).join('');
 }
 
