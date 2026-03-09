@@ -752,7 +752,7 @@ function renderStreakWeek(){
 function renderRecentTxs(){
   const c=g('recent-list');if(!c)return;
   const all=Object.entries(S.transactions).map(([k,t])=>({...t,id:k}));
-  const txs=personTxs(all).sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  const txs=personTxs(all).sort((a,b)=>(b.timestamp||0)-(a.timestamp||0)).slice(0,5);
   const viewingPartner=activePerson==='partner';
   c.innerHTML=txs.length?txs.map(tx=>txHtml(tx,viewingPartner)).join(''):'<div class="empty-state"><div class="empty-icon">💸</div><div class="empty-text">¡Aún no hay movimientos!</div><div style="margin-top:6px;font-size:13px;">Presiona + para añadir uno</div></div>';
 }
@@ -771,7 +771,7 @@ async function deleteTx(id){
 
 function renderTransactions(){
   updLabel('tx-month-label');
-  const allTxs=monthTxs(vYear,vMonth).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const allTxs=monthTxs(vYear,vMonth).sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
   const txs=personTxs(allTxs);
   let inc=0,exp=0;txs.forEach(t=>{if(t.type==='income')inc+=t.amount;else exp+=t.amount;});
   el('tx-total-income',fmt(inc));el('tx-total-expense',fmt(exp));
