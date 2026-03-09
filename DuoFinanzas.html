@@ -594,7 +594,7 @@ function subscribe(){
     const users=s.val()||{};
     for(const uid in users){
       if(uid!==currentUser.uid&&users[uid].coupleCode===coupleCode){
-        S.partnerProfile=users[uid];renderPartnerBanner();
+        S.partnerProfile=users[uid];renderPartnerBanner();renderAll();
       }
     }
   });
