@@ -493,7 +493,7 @@ const DAYS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 // ════════════════════════════════════
 //   STATE
 // ════════════════════════════════════
-let db,auth,currentUser=null,coupleCode=null;
+let db,auth,currentUser=null,coupleCode=null,_registering=false;
 let txType='expense',selCat='food',curGoalId=null,txFilter='all',activePerson='me';
 const NOW=new Date();
 let vYear=NOW.getFullYear(),vMonth=NOW.getMonth();
@@ -508,6 +508,7 @@ window.addEventListener('load',()=>{
   auth=firebase.auth();
   auth.onAuthStateChanged(async user=>{
     if(user){
+      if(_registering)return;
       currentUser={uid:user.uid,email:user.email};
       await loadUserData();
       showApp();
@@ -538,12 +539,19 @@ async function doRegister(){
   err.style.display='none';
   if(!name||!email||!pass||!code){showToast('⚠️ Completa todos los campos');return;}
   if(pass.length<6){err.textContent='❌ La contraseña debe tener al menos 6 caracteres';err.style.display='block';return;}
+  _registering=true;
   try{
     const c=await auth.createUserWithEmailAndPassword(email,pass);
     currentUser={uid:c.user.uid,email};
-    coupleCode=code;S.profile.name=name;
+    coupleCode=code;
+    S.profile.name=name;
     await saveUserData();
-  }catch(e){err.textContent='❌ '+(e.code==='auth/email-already-in-use'?'Este email ya está registrado':e.message);err.style.display='block';}
+    _registering=false;
+    showApp();
+  }catch(e){
+    _registering=false;
+    err.textContent='❌ '+(e.code==='auth/email-already-in-use'?'Este email ya está registrado':e.message);err.style.display='block';
+  }
 }
 
 async function doLogout(){
