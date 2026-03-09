@@ -474,7 +474,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
 <div class="modal-overlay" id="add-goal-modal">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-title" id="goal-modal-title">💰 <span id="goal-add-name"></span></div>
+    <div class="modal-title"><span id="goal-modal-icon">💰</span> <span id="goal-add-name"></span></div>
     <div class="type-selector" style="margin-bottom:16px;">
       <button class="type-btn selected income" id="goal-mode-add" onclick="setGoalMode('add')">💰 Añadir</button>
       <button class="type-btn" id="goal-mode-withdraw" onclick="setGoalMode('withdraw')">🚨 Retirar</button>
@@ -943,7 +943,7 @@ function setGoalMode(m){
   goalMode=m;
   g('goal-mode-add').className='type-btn'+(m==='add'?' selected income':'');
   g('goal-mode-withdraw').className='type-btn'+(m==='withdraw'?' selected expense':'');
-  el('goal-modal-title',(m==='add'?'💰 ':'🚨 ')+g('goal-add-name').textContent);
+  el('goal-modal-icon',m==='add'?'💰':'🚨');
   el('goal-amount-label',m==='add'?'Monto a añadir':'Monto a retirar');
   const btn=g('goal-action-btn');
   btn.textContent=m==='add'?'+ Añadir ahorro':'- Retirar dinero';
