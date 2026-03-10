@@ -798,6 +798,8 @@ function showTab(t){
   if(t==='budget-screen')renderBudget();
   if(t==='savings-screen')renderGoals();
   if(t==='profile-screen')renderProfile();
+  g('fab').style.display=t==='home-screen'?'flex':'none';
+  if(t!=='home-screen')closeFab();
 }
 
 // ════════════════════════════════════
