@@ -359,7 +359,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
 <div id="budget-screen" class="screen page-scroll">
   <div class="top-bar">
     <div class="top-title">📊 Presupuesto</div>
-    <button class="btn btn-sm btn-secondary" onclick="openBudgetSetup()">✏️ Editar</button>
+    <button class="btn btn-sm btn-secondary" id="budget-edit-btn" onclick="openBudgetSetup()">✏️ Editar</button>
   </div>
   <div class="person-toggle" style="padding:12px 16px 0;">
     <button class="person-btn active" onclick="filterPerson('me',this)">👤 Yo</button>
@@ -758,7 +758,7 @@ function subscribe(){
     console.log('[DuoFinanzas] profiles snapshot, uids:',Object.keys(profiles));
     for(const uid in profiles){
       if(uid!==currentUser.uid){
-        S.partnerProfile=profiles[uid];
+        S.partnerProfile={...profiles[uid],uid};
         console.log('[DuoFinanzas] ✅ partner found:',S.partnerProfile.name);
         renderPartnerBanner();renderAll();
       }
@@ -768,7 +768,7 @@ function subscribe(){
 
 async function saveTx(tx){const ref=db.ref(path()+'/transactions').push();await ref.set(tx);return ref.key;}
 async function saveGoalDB(data,id2){if(id2)await db.ref(path()+'/goals/'+id2).update(data);else await db.ref(path()+'/goals').push(data);}
-async function saveBudgetDB(data){await db.ref(path()+'/budgets/'+vYear+'_'+vMonth).set(data);}
+async function saveBudgetDB(data){await db.ref(path()+'/budgets/'+vYear+'_'+vMonth+'_'+currentUser.uid).set(data);}
 
 // ════════════════════════════════════
 //   APP FLOW
@@ -916,10 +916,21 @@ function personTxs(allTxs){
   return allTxs.filter(t=>t.addedBy===myName||!t.addedBy);
 }
 
+function budgetKey(uid){return vYear+'_'+vMonth+'_'+uid;}
+function myBudget(){return S.budgets[budgetKey(currentUser.uid)]||{};}
+function viewingBudget(){
+  if(activePerson==='partner'&&S.partnerProfile&&S.partnerProfile.uid)
+    return S.budgets[budgetKey(S.partnerProfile.uid)]||{};
+  return myBudget();
+}
+
 function renderBudget(){
   updLabel('budget-month-label');
   renderCharts();
-  const key=vYear+'_'+vMonth,budget=S.budgets[key]||{},txs=personTxs(monthTxs(vYear,vMonth)).filter(t=>t.type==='expense');
+  const isPartner=activePerson==='partner'&&S.partnerProfile;
+  const btn=g('budget-edit-btn');
+  if(btn)btn.style.display=isPartner?'none':'';
+  const budget=viewingBudget(),txs=personTxs(monthTxs(vYear,vMonth)).filter(t=>t.type==='expense');
   const totalB=budget.total||0;let spent=0;txs.forEach(t=>spent+=t.amount);
   el('budget-spent',fmt(spent));el('budget-total',fmt(totalB));
   const pct=totalB>0?Math.min(100,(spent/totalB)*100):0;
@@ -928,7 +939,7 @@ function renderBudget(){
   const c=g('budget-bars');if(!c)return;
   const cats=budget.categories||{};
   const hasData=Object.keys(cats).some(k=>cats[k]>0)||totalB>0;
-  if(!hasData){c.innerHTML='<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-text">Configura tu presupuesto</div><button class="btn btn-primary" style="margin-top:12px;width:auto;padding:10px 20px;" onclick="openBudgetSetup()">+ Crear presupuesto</button></div>';return;}
+  if(!hasData){c.innerHTML=`<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-text">${isPartner?S.partnerProfile.name+' no tiene presupuesto':'Configura tu presupuesto'}</div>${!isPartner?'<button class="btn btn-primary" style="margin-top:12px;width:auto;padding:10px 20px;" onclick="openBudgetSetup()">+ Crear presupuesto</button>':''}</div>`;return;}
   let html='';
   CATS.expense.forEach(cat=>{
     const alloc=cats[cat.id]||0;if(!alloc)return;
@@ -1016,7 +1027,7 @@ async function doSaveTx(){
 //   BUDGET
 // ════════════════════════════════════
 function openBudgetSetup(){
-  const budget=S.budgets[vYear+'_'+vMonth]||{},cats=budget.categories||{};
+  const budget=myBudget(),cats=budget.categories||{};
   g('budget-modal-month').textContent='Presupuesto para '+MONTHS[vMonth]+' '+vYear;
   g('budget-total-input').value=budget.total||'';
   g('budget-setup-list').innerHTML=CATS.expense.map(cat=>`<div class="budget-setup-row"><div class="budget-setup-cat">${cat.label}</div><input class="budget-setup-input" type="number" data-cat="${cat.id}" placeholder="0.00" value="${cats[cat.id]||''}"></div>`).join('');
