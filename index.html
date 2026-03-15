@@ -310,12 +310,12 @@
     }
 
     .nav-icon {
-      font-size: 20px;
+      font-size: 22px;
       margin-bottom: 2px
     }
 
     .nav-label {
-      font-size: 8px;
+      font-size: 10px;
       font-weight: 700;
       letter-spacing: .3px
     }
@@ -323,6 +323,8 @@
     .nav-item.active .nav-icon {
       filter: drop-shadow(0 0 6px var(--primary-light))
     }
+    .nav-more-item{display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;padding:10px 14px;border-radius:10px;cursor:pointer;transition:background .2s}
+    .nav-more-item:active{background:var(--bg3)}
 
     /* TOP BAR */
     .top-bar {
@@ -1511,6 +1513,31 @@
     .sub-total-box{flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;text-align:center}
     .sub-total-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
     .sub-total-value{font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;margin-top:4px}
+    /* LOANS */
+    .loan-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin:0 16px 12px;position:relative;overflow:hidden}
+    .loan-card.lent{border-left:4px solid var(--green)}
+    .loan-card.borrowed{border-left:4px solid var(--red)}
+    .loan-direction{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+    .loan-direction.lent{color:var(--green)}
+    .loan-direction.borrowed{color:var(--red)}
+    .loan-person{font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:var(--text)}
+    .loan-amounts{display:flex;gap:10px;margin-top:10px}
+    .loan-amounts>div{flex:1;background:var(--bg3);border-radius:10px;padding:8px;text-align:center}
+    .loan-amt-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase}
+    .loan-amt-value{font-size:15px;font-weight:800;margin-top:2px}
+    .loan-bar-wrap{background:var(--bg3);border-radius:30px;height:10px;overflow:hidden;margin-top:10px}
+    .loan-bar{height:100%;border-radius:30px;transition:width .8s cubic-bezier(.34,1.56,.64,1)}
+    .loan-bar.lent{background:linear-gradient(90deg,var(--green),#6ee7b7)}
+    .loan-bar.borrowed{background:linear-gradient(90deg,var(--red),#fca5a5)}
+    .loan-pct{font-size:12px;font-weight:700;color:var(--text3);text-align:right;margin-top:4px}
+    .loan-actions{display:flex;gap:6px;margin-top:10px}
+    .loan-actions button{flex:1;padding:8px;border-radius:8px;border:none;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer}
+    .loan-actions button:active{transform:scale(.97)}
+    .loan-pay-btn{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3)!important;color:var(--green)}
+    .loan-del-btn{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3)!important;color:var(--red)}
+    .loan-history{margin-top:8px;border-top:1px solid var(--border);padding-top:8px}
+    .loan-history-item{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;color:var(--text3)}
+    .loan-history-amount{font-weight:800;color:var(--green)}
   </style>
 </head>
 
@@ -1614,6 +1641,16 @@
           <div class="balance-mini">
             <div class="balance-mini-label">💳 DEUDA CRÉDITO</div>
             <div class="balance-mini-value" id="home-credit-debt" style="color:#fca5a5;">RD$0</div>
+          </div>
+        </div>
+        <div class="balance-grid" style="margin-top:8px;">
+          <div class="balance-mini">
+            <div class="balance-mini-label">📤 ME DEBEN</div>
+            <div class="balance-mini-value" id="home-loans-lent" style="color:#6ee7b7;">RD$0</div>
+          </div>
+          <div class="balance-mini">
+            <div class="balance-mini-label">📥 YO DEBO</div>
+            <div class="balance-mini-value" id="home-loans-owed" style="color:#fca5a5;">RD$0</div>
           </div>
         </div>
       </div>
@@ -1782,6 +1819,23 @@
       <div id="subs-list"></div>
     </div>
 
+    <!-- ══════════ LOANS / PRÉSTAMOS ══════════ -->
+    <div id="loans-screen" class="screen page-scroll">
+      <div class="top-bar">
+        <div class="top-title">🤝 Préstamos</div>
+        <button class="btn btn-sm btn-primary" onclick="openLoanModal()">+ Nuevo</button>
+      </div>
+      <div class="person-toggle" style="padding:4px 16px 0;">
+        <button class="person-btn active" onclick="filterPerson('me',this)">👤 Yo</button>
+        <button class="person-btn" onclick="filterPerson('partner',this)">💑 <span class="partner-name-label">Pareja</span></button>
+      </div>
+      <div class="sub-total-bar" id="loans-total-wrap" style="display:none;">
+        <div class="sub-total-box"><div class="sub-total-label">Me deben</div><div class="sub-total-value" id="loans-lent" style="color:var(--green);">RD$0</div></div>
+        <div class="sub-total-box"><div class="sub-total-label">Yo debo</div><div class="sub-total-value" id="loans-borrowed" style="color:var(--red);">RD$0</div></div>
+      </div>
+      <div id="loans-list"></div>
+    </div>
+
     <!-- ══════════ PROFILE ══════════ -->
     <div id="profile-screen" class="screen page-scroll">
       <div class="top-bar">
@@ -1842,15 +1896,18 @@
           class="nav-icon">💳</span><span class="nav-label">Gastos</span></button>
       <button class="nav-item" onclick="showTab('budget-screen')" data-tab="budget-screen"><span
           class="nav-icon">📊</span><span class="nav-label">Presupuesto</span></button>
-      <button class="nav-item" onclick="showTab('savings-screen')" data-tab="savings-screen"><span
-          class="nav-icon">🎯</span><span class="nav-label">Metas</span></button>
       <button class="nav-item" onclick="showTab('cards-screen')" data-tab="cards-screen"><span
           class="nav-icon">🏦</span><span class="nav-label">Tarjetas</span></button>
-      <button class="nav-item" onclick="showTab('subs-screen')" data-tab="subs-screen"><span
-          class="nav-icon">🔄</span><span class="nav-label">Suscrip.</span></button>
-      <button class="nav-item" onclick="showTab('profile-screen')" data-tab="profile-screen"><span
-          class="nav-icon">👤</span><span class="nav-label">Perfil</span></button>
+      <button class="nav-item" onclick="toggleMoreMenu()" id="more-nav-btn"><span
+          class="nav-icon">☰</span><span class="nav-label">Más</span></button>
     </nav>
+    <!-- MORE MENU -->
+    <div id="more-menu" style="display:none;position:fixed;bottom:65px;right:8px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:8px;z-index:110;box-shadow:var(--shadow);min-width:180px;">
+      <button class="nav-more-item" onclick="showTabMore('savings-screen')">🎯 Metas de Ahorro</button>
+      <button class="nav-more-item" onclick="showTabMore('subs-screen')">🔄 Suscripciones</button>
+      <button class="nav-more-item" onclick="showTabMore('loans-screen')">🤝 Préstamos</button>
+      <button class="nav-more-item" onclick="showTabMore('profile-screen')">👤 Perfil</button>
+    </div>
     <button class="fab" id="fab" style="display:none;" onclick="openAddTransaction()">+</button>
 
     <!-- ══════════ MODALS ══════════ -->
@@ -1974,6 +2031,39 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="loan-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="loan-modal-title">🤝 Nuevo Préstamo</div>
+    <div class="form-group"><label class="form-label">Dirección</label>
+      <div id="loan-dir-grid" class="cat-grid"></div>
+    </div>
+    <div class="form-group"><label class="form-label">¿A quién / De quién?</label><input class="form-input" id="loan-person" placeholder="Ej: Juan, Banco Popular, Mi pareja"></div>
+    <div class="form-group"><label class="form-label">Monto total</label><input type="number" class="amount-input" id="loan-amount" placeholder="0.00" min="0" step="0.01"></div>
+    <div class="form-group"><label class="form-label">Nota (opcional)</label><input class="form-input" id="loan-note" placeholder="Ej: Para la laptop, préstamo personal"></div>
+    <div class="form-group"><label class="form-label">Fecha</label><input type="date" class="form-input" id="loan-date"></div>
+    <div class="form-group" id="loan-card-group"><label class="form-label">Tarjeta (sale de / entra a)</label><select class="form-input" id="loan-card"></select></div>
+    <button class="btn btn-primary" onclick="saveLoan()" style="margin-top:8px;">💾 Guardar</button>
+    <button class="btn btn-secondary" onclick="closeModal('loan-modal')">Cancelar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="pay-loan-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">💸 Registrar Pago</div>
+    <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;">
+      <div style="font-size:12px;color:var(--text3);font-weight:700;" id="pay-loan-dir"></div>
+      <div style="font-size:18px;font-weight:800;color:var(--text);" id="pay-loan-person"></div>
+      <div style="font-size:14px;color:var(--text3);font-weight:700;" id="pay-loan-remaining"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Monto del pago</label><input type="number" class="amount-input" id="pay-loan-amount" placeholder="0.00" min="0" step="0.01"></div>
+    <div class="form-group"><label class="form-label">Tarjeta</label><select class="form-input" id="pay-loan-card"></select></div>
+    <button class="btn btn-success" onclick="doPayLoan()" style="margin-top:8px;">💸 Registrar pago</button>
+    <button class="btn btn-secondary" onclick="closeModal('pay-loan-modal')">Cancelar</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="sub-modal">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -2028,7 +2118,7 @@
     let txType = 'expense', selCat = 'food', curGoalId = null, txFilter = 'all', activePerson = 'me';
     const NOW = new Date();
     let vYear = NOW.getFullYear(), vMonth = NOW.getMonth();
-    let S = { transactions: {}, budgets: {}, goals: {}, cards: {}, subs: {}, profile: { name: '', xp: 0, streak: 0, lastActiveDate: '', achievements: [], txCount: 0 }, partnerProfile: null };
+    let S = { transactions: {}, budgets: {}, goals: {}, cards: {}, subs: {}, loans: {}, profile: { name: '', xp: 0, streak: 0, lastActiveDate: '', achievements: [], txCount: 0 }, partnerProfile: null };
 
     // ════════════════════════════════════
     //   INIT — FIREBASE AUTOMÁTICO
@@ -2130,6 +2220,7 @@
       db.ref(p + '/goals').on('value', s => { S.goals = s.val() || {}; renderGoals(); });
       db.ref(p + '/cards').on('value', s => { S.cards = s.val() || {}; renderCards(); });
       db.ref(p + '/subs').on('value', s => { S.subs = s.val() || {}; renderSubs(); processAutoCharges(); });
+      db.ref(p + '/loans').on('value', s => { S.loans = s.val() || {}; renderLoans(); });
       db.ref(p + '/profiles').on('value', s => {
         const profiles = s.val() || {};
         console.log('[DuoFinanzas] profiles snapshot, uids:', Object.keys(profiles));
@@ -2170,15 +2261,23 @@
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
       g(t).classList.add('active');
       const nb = document.querySelector('[data-tab="' + t + '"]'); if (nb) nb.classList.add('active');
+      // Highlight "Más" if it's a sub-screen
+      const moreScreens=['savings-screen','subs-screen','loans-screen','profile-screen'];
+      if(moreScreens.includes(t)){const mb=g('more-nav-btn');if(mb)mb.classList.add('active');}
       const fab = g('fab'); if (fab) fab.style.display = t === 'home-screen' ? 'flex' : 'none';
+      const mm=g('more-menu');if(mm)mm.style.display='none';
       if (t === 'home-screen') renderHome();
       if (t === 'transactions-screen') renderTransactions();
       if (t === 'budget-screen') renderBudget();
       if (t === 'savings-screen') renderGoals();
       if (t === 'cards-screen') renderCards();
       if (t === 'subs-screen') renderSubs();
+      if (t === 'loans-screen') renderLoans();
       if (t === 'profile-screen') renderProfile();
     }
+    function toggleMoreMenu(){const mm=g('more-menu');if(mm)mm.style.display=mm.style.display==='none'?'block':'none';}
+    function showTabMore(t){showTab(t);}
+    document.addEventListener('click',e=>{const mm=g('more-menu');const mb=g('more-nav-btn');if(mm&&mm.style.display==='block'&&!mm.contains(e.target)&&!mb.contains(e.target))mm.style.display='none';});
 
     // ════════════════════════════════════
     //   STREAK
@@ -2197,7 +2296,7 @@
     // ════════════════════════════════════
     //   RENDER
     // ════════════════════════════════════
-    function renderAll() { renderHome(); renderTransactions(); renderBudget(); renderGoals(); renderCards(); renderSubs(); renderProfile(); }
+    function renderAll() { renderHome(); renderTransactions(); renderBudget(); renderGoals(); renderCards(); renderSubs(); renderLoans(); renderProfile(); }
 
     function renderHome() {
       const h = new Date().getHours(), gr = h < 12 ? '¡Buenos días' : h < 18 ? '¡Buenas tardes' : '¡Buenas noches';
@@ -2214,11 +2313,20 @@
         : allCards.filter(c => c.addedBy === partnerName);
       let cardsBal = 0; myCards.forEach(cd => { if (cd.type !== 'credit') cardsBal += cd.balance || 0; });
       let creditDebt = 0; myCards.forEach(cd => { if (cd.type === 'credit') creditDebt += (cd.creditLimit || 0) - (cd.available || 0); });
-      const bal = cardsBal - creditDebt;
+      // Loans
+      const allLoans = Object.values(S.loans || {});
+      const myLoans = !partnerName ? allLoans : activePerson === 'me'
+        ? allLoans.filter(l => l.addedBy === myName || !l.addedBy)
+        : allLoans.filter(l => l.addedBy === partnerName);
+      let loansLent=0,loansOwed=0;
+      myLoans.forEach(l=>{const rem=(l.amount||0)-(l.paid||0);if(rem>0){if(l.direction==='lent')loansLent+=rem;else loansOwed+=rem;}});
+      const bal = cardsBal - creditDebt - loansOwed;
       const be = g('home-balance'); if (be) { be.textContent = fmt(bal); be.style.color = bal >= 0 ? 'white' : '#fca5a5'; }
       el('home-income', fmt(inc)); el('home-expense', fmt(exp));
       el('home-cards-total', fmt(cardsBal));
       el('home-credit-debt', fmt(creditDebt));
+      el('home-loans-lent', fmt(loansLent));
+      el('home-loans-owed', fmt(loansOwed));
       el('home-month-label', MONTHS[NOW.getMonth()] + ' ' + NOW.getFullYear());
       el('streak-count', S.profile.streak || 0);
       renderXP(); renderStreakWeek(); renderRecentTxs();
@@ -2642,6 +2750,131 @@
       if(!confirm('¿Eliminar esta meta de ahorro?'))return;
       await db.ref(path()+'/goals/'+id).remove();
       showToast('🗑️ Meta eliminada');
+    }
+
+    // ════════════════════════════════════
+    //   LOANS / PRÉSTAMOS
+    // ════════════════════════════════════
+    const LOAN_DIRS=[{id:'lent',label:'📤 Yo presté'},{id:'borrowed',label:'📥 Me prestaron'}];
+    let _loanDir='lent',_editLoanId=null,_payLoanId=null;
+
+    function renderLoans(){
+      const c=g('loans-list');if(!c)return;
+      const myName=S.profile.name||'';
+      const partnerName=S.partnerProfile?S.partnerProfile.name:'';
+      const allLoans=Object.entries(S.loans).map(([k,v])=>({...v,id:k}));
+      const loans=!partnerName?allLoans:activePerson==='me'
+        ?allLoans.filter(l=>l.addedBy===myName||!l.addedBy)
+        :allLoans.filter(l=>l.addedBy===partnerName);
+      const wrap=g('loans-total-wrap');
+      if(!loans.length){
+        if(wrap)wrap.style.display='none';
+        c.innerHTML='<div class="empty-state" style="padding:60px 20px;"><div class="empty-icon">🤝</div><div class="empty-text">Sin préstamos</div><div style="margin-top:6px;font-size:13px;color:var(--text3);">Registra préstamos que hayas hecho o recibido</div></div>';
+        return;
+      }
+      if(wrap)wrap.style.display='flex';
+      let totalLent=0,totalBorrowed=0;
+      loans.forEach(l=>{const rem=(l.amount||0)-(l.paid||0);if(l.direction==='lent')totalLent+=rem;else totalBorrowed+=rem;});
+      el('loans-lent',fmt(totalLent));el('loans-borrowed',fmt(totalBorrowed));
+      c.innerHTML=loans.map(l=>{
+        const paid=l.paid||0,rem=l.amount-paid;
+        const pct=l.amount>0?Math.min(100,(paid/l.amount)*100):0;
+        const done=rem<=0;
+        const isLent=l.direction==='lent';
+        const dirLabel=isLent?'LE PRESTÉ A':'ME PRESTÓ';
+        const payments=l.payments?Object.values(l.payments).sort((a,b)=>b.timestamp-a.timestamp):[];
+        return`<div class="loan-card ${l.direction}">
+          ${done?'<div style="position:absolute;top:10px;right:14px;font-size:18px;">✅</div>':''}
+          <div class="loan-direction ${l.direction}">${dirLabel}</div>
+          <div class="loan-person">${esc(l.person)}${l.note?' · <span style="font-size:13px;font-weight:600;color:var(--text3);">'+esc(l.note)+'</span>':''}</div>
+          <div style="font-size:11px;color:var(--text3);">${l.date?fmtDate(l.date):''}</div>
+          <div class="loan-amounts">
+            <div><div class="loan-amt-label">Total</div><div class="loan-amt-value" style="color:var(--text);">${fmt(l.amount)}</div></div>
+            <div><div class="loan-amt-label">Pagado</div><div class="loan-amt-value" style="color:var(--green);">${fmt(paid)}</div></div>
+            <div><div class="loan-amt-label">Resta</div><div class="loan-amt-value" style="color:${done?'var(--green)':'var(--red)'};">${fmt(rem)}</div></div>
+          </div>
+          <div class="loan-bar-wrap"><div class="loan-bar ${l.direction}" style="width:${pct}%"></div></div>
+          <div class="loan-pct">${Math.round(pct)}% pagado</div>
+          <div class="loan-actions">
+            ${!done?'<button class="loan-pay-btn" onclick="openPayLoan(\''+l.id+'\')">💸 Pagar</button>':''}
+            <button class="loan-del-btn" onclick="deleteLoan('${l.id}')">🗑️ Eliminar</button>
+          </div>
+          ${payments.length?'<div class="loan-history"><div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:4px;">HISTORIAL DE PAGOS</div>'+payments.slice(0,5).map(p=>`<div class="loan-history-item"><span>${fmtDate(p.date)}</span><span class="loan-history-amount">+${fmt(p.amount)}</span></div>`).join('')+'</div>':''}
+        </div>`;
+      }).join('');
+    }
+
+    function openLoanModal(){
+      _editLoanId=null;_loanDir='lent';
+      el('loan-modal-title','🤝 Nuevo Préstamo');
+      g('loan-person').value='';g('loan-amount').value='';g('loan-note').value='';
+      g('loan-date').value=new Date().toISOString().slice(0,10);
+      renderLoanDirGrid();renderCardSelect('loan-card',true,true);
+      openModal('loan-modal');
+    }
+
+    function selectLoanDir(d){_loanDir=d;renderLoanDirGrid();}
+    function renderLoanDirGrid(){
+      const gr=g('loan-dir-grid');if(!gr)return;
+      gr.innerHTML=LOAN_DIRS.map(d=>`<button class="cat-pill ${d.id===_loanDir?'selected':''}" onclick="selectLoanDir('${d.id}')">${d.label}</button>`).join('');
+    }
+
+    async function saveLoan(){
+      const person=g('loan-person').value.trim(),amount=parseFloat(g('loan-amount').value)||0;
+      const note=g('loan-note').value.trim(),date=g('loan-date').value,cardId=g('loan-card').value||'';
+      if(!person){showToast('⚠️ Escribe a quién');return;}
+      if(!amount){showToast('⚠️ Ingresa el monto');return;}
+      const data={person,amount,paid:0,direction:_loanDir,note,date,cardId,addedBy:S.profile.name||'Usuario',timestamp:Date.now(),payments:{}};
+      await db.ref(path()+'/loans').push(data);
+      // If linked to card: lent = money goes out, borrowed = money comes in
+      if(cardId){
+        const delta=_loanDir==='lent'?-amount:amount;
+        await updateCardBalance(cardId,delta);
+      }
+      addXP(10);await saveUserData();
+      closeModal('loan-modal');
+      showToast('✅ Préstamo registrado!');
+    }
+
+    function openPayLoan(id){
+      const l=S.loans[id];if(!l)return;
+      _payLoanId=id;
+      const rem=(l.amount||0)-(l.paid||0);
+      const isLent=l.direction==='lent';
+      el('pay-loan-dir',isLent?'LE PRESTÉ A':'ME PRESTÓ');
+      el('pay-loan-person',l.person);
+      el('pay-loan-remaining','Resta por pagar: '+fmt(rem));
+      g('pay-loan-amount').value='';
+      renderCardSelect('pay-loan-card',true,true);
+      openModal('pay-loan-modal');
+    }
+
+    async function doPayLoan(){
+      const amount=parseFloat(g('pay-loan-amount').value);
+      const cardId=g('pay-loan-card').value||'';
+      if(!amount||amount<=0){showToast('⚠️ Ingresa un monto');return;}
+      const loan=S.loans[_payLoanId];if(!loan)return;
+      const newPaid=(loan.paid||0)+amount;
+      const isLent=loan.direction==='lent';
+      // Update loan paid amount
+      await db.ref(path()+'/loans/'+_payLoanId+'/paid').set(newPaid);
+      // Save payment record
+      await db.ref(path()+'/loans/'+_payLoanId+'/payments').push({amount,date:new Date().toISOString().slice(0,10),timestamp:Date.now(),cardId});
+      // Update card: lent payment = money comes back, borrowed payment = money goes out
+      if(cardId){
+        const delta=isLent?amount:-amount;
+        await updateCardBalance(cardId,delta);
+      }
+      closeModal('pay-loan-modal');
+      const rem=loan.amount-newPaid;
+      if(rem<=0)showToast('🎉 ¡Préstamo saldado!');
+      else showToast('💸 Pago de '+fmt(amount)+' registrado');
+    }
+
+    async function deleteLoan(id){
+      if(!confirm('¿Eliminar este préstamo?'))return;
+      await db.ref(path()+'/loans/'+id).remove();
+      showToast('🗑️ Préstamo eliminado');
     }
 
     // ════════════════════════════════════
