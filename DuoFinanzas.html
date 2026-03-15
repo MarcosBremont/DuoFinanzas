@@ -211,6 +211,10 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
 .color-grid{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
 .color-dot{width:36px;height:36px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .2s}
 .color-dot.selected{border-color:white;box-shadow:0 0 12px rgba(255,255,255,.4);transform:scale(1.15)}
+.wallet-card-credit-info{display:flex;gap:10px;margin-top:10px}
+.wallet-card-credit-info>div{flex:1;background:rgba(255,255,255,.12);border-radius:8px;padding:6px 8px;text-align:center}
+.wallet-card-credit-label{font-size:9px;font-weight:700;text-transform:uppercase;opacity:.7;letter-spacing:.5px}
+.wallet-card-credit-value{font-size:14px;font-weight:800;margin-top:2px}
 </style>
 </head>
 <body>
@@ -519,7 +523,14 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
       <div id="card-subtype-grid" class="cat-grid"></div>
     </div>
     <div class="form-group"><label class="form-label">Nombre de la tarjeta</label><input class="form-input" id="card-name" placeholder="Ej: Visa Popular, Mastercard BHD"></div>
-    <div class="form-group"><label class="form-label">Saldo disponible</label><input type="number" class="amount-input" id="card-balance" placeholder="0.00" min="0" step="0.01"></div>
+    <div id="card-balance-group">
+      <div class="form-group"><label class="form-label">Saldo disponible</label><input type="number" class="amount-input" id="card-balance" placeholder="0.00" min="0" step="0.01"></div>
+    </div>
+    <div id="card-credit-group" style="display:none;">
+      <div class="form-group"><label class="form-label">Límite de crédito (monto total)</label><input type="number" class="amount-input" id="card-limit" placeholder="0.00" min="0" step="0.01"></div>
+      <div class="form-group"><label class="form-label">Disponible</label><input type="number" class="amount-input" id="card-available" placeholder="0.00" min="0" step="0.01"></div>
+      <div class="form-group"><label class="form-label">Día de corte/pago del mes</label><input type="number" class="form-input" id="card-pay-day" placeholder="Ej: 15" min="1" max="31" inputmode="numeric"></div>
+    </div>
     <div class="form-group"><label class="form-label">Últimos 4 dígitos (opcional)</label><input class="form-input" id="card-last4" placeholder="1234" maxlength="4" inputmode="numeric"></div>
     <div class="form-group"><label class="form-label">Color</label><div class="color-grid" id="card-color-grid"></div></div>
     <button class="btn btn-primary" onclick="saveCard()" style="margin-top:8px;">💾 Guardar</button>
@@ -988,11 +999,20 @@ function renderCards(){
     return;
   }
   if(wrap)wrap.style.display='flex';
-  let total=0;cards.forEach(cd=>total+=cd.balance||0);
+  let total=0;cards.forEach(cd=>total+=cd.type==='credit'?(cd.available||0):(cd.balance||0));
   el('cards-total',fmt(total));el('cards-count',cards.length);
   c.innerHTML=cards.map(cd=>{
     const fullType=cd.subtype?cd.type+'-'+cd.subtype:cd.type;const typeLabel=CARD_DISPLAY[fullType]||CARD_DISPLAY[cd.type]||'TARJETA';
     const last4=cd.last4?'•••• '+cd.last4:'';
+    const isCred=cd.type==='credit';
+    const limit=cd.creditLimit||0,avail=cd.available||0,owed=limit-avail;
+    const creditInfo=isCred?`<div class="wallet-card-credit-info">
+      <div><div class="wallet-card-credit-label">Límite</div><div class="wallet-card-credit-value">${fmt(limit)}</div></div>
+      <div><div class="wallet-card-credit-label">Deuda</div><div class="wallet-card-credit-value" style="color:#fca5a5;">${fmt(owed)}</div></div>
+      <div><div class="wallet-card-credit-label">Pago</div><div class="wallet-card-credit-value">${cd.payDay?'Día '+cd.payDay:'—'}</div></div>
+    </div>`:'';
+    const displayBalance=isCred?fmt(avail):fmt(cd.balance||0);
+    const balLabel=isCred?'DISPONIBLE':'';
     return`<div class="wallet-card grad-${cd.color||'purple'}">
       <div class="wallet-card-actions">
         <button class="wallet-card-btn" onclick="openEditCard('${cd.id}')" title="Editar">✏️</button>
@@ -1000,7 +1020,9 @@ function renderCards(){
       </div>
       <div class="wallet-card-type">${typeLabel}</div>
       <div class="wallet-card-name">${esc(cd.name)}</div>
-      <div class="wallet-card-balance">${fmt(cd.balance||0)}</div>
+      ${balLabel?'<div style="font-size:11px;opacity:.7;font-weight:700;margin-bottom:-4px;">'+balLabel+'</div>':''}
+      <div class="wallet-card-balance">${displayBalance}</div>
+      ${creditInfo}
       ${last4?'<div class="wallet-card-last4">'+last4+'</div>':''}
     </div>`;
   }).join('');
@@ -1010,6 +1032,7 @@ function openCardModal(){
   _editCardId=null;_cardType='debit';_cardSubtype='savings';_cardColor='purple';
   el('card-modal-title','💳 Nueva Tarjeta');
   g('card-name').value='';g('card-balance').value='';g('card-last4').value='';
+  g('card-limit').value='';g('card-available').value='';g('card-pay-day').value='';
   renderCardTypeButtons();renderCardSubtype();renderCardColors();
   openModal('card-modal');
 }
@@ -1019,6 +1042,7 @@ function openEditCard(id){
   _editCardId=id;_cardType=cd.type||'debit';_cardSubtype=cd.subtype||'savings';_cardColor=cd.color||'purple';
   el('card-modal-title','✏️ Editar Tarjeta');
   g('card-name').value=cd.name||'';g('card-balance').value=cd.balance||'';g('card-last4').value=cd.last4||'';
+  g('card-limit').value=cd.creditLimit||'';g('card-available').value=cd.available||'';g('card-pay-day').value=cd.payDay||'';
   renderCardTypeButtons();renderCardSubtype();renderCardColors();
   openModal('card-modal');
 }
@@ -1031,6 +1055,10 @@ function renderCardTypeButtons(){
 function selectCardSubtype(t){_cardSubtype=t;renderCardSubtype();}
 function renderCardSubtype(){
   const grp=g('card-subtype-group');if(!grp)return;
+  const isCred=_cardType==='credit';
+  const bg=g('card-balance-group'),cg=g('card-credit-group');
+  if(bg)bg.style.display=isCred?'none':'block';
+  if(cg)cg.style.display=isCred?'block':'none';
   if(_cardType==='debit'){
     grp.style.display='block';
     const gr=g('card-subtype-grid');if(!gr)return;
@@ -1050,7 +1078,12 @@ async function saveCard(){
   const name=g('card-name').value.trim(),balance=parseFloat(g('card-balance').value)||0,last4=g('card-last4').value.trim();
   if(!name){showToast('⚠️ Escribe el nombre de la tarjeta');return;}
   const subtype=_cardType==='debit'?_cardSubtype:'';
-  const data={name,type:_cardType,subtype,balance,last4:last4.slice(0,4),color:_cardColor,addedBy:S.profile.name||'Usuario',timestamp:Date.now()};
+  const isCred=_cardType==='credit';
+  const creditLimit=isCred?parseFloat(g('card-limit').value)||0:0;
+  const available=isCred?parseFloat(g('card-available').value)||0:0;
+  const payDay=isCred?parseInt(g('card-pay-day').value)||0:0;
+  const finalBalance=isCred?available:balance;
+  const data={name,type:_cardType,subtype,balance:finalBalance,last4:last4.slice(0,4),color:_cardColor,addedBy:S.profile.name||'Usuario',timestamp:Date.now(),creditLimit,available,payDay};
   if(_editCardId){
     await db.ref(path()+'/cards/'+_editCardId).update(data);
     showToast('✅ Tarjeta actualizada');
