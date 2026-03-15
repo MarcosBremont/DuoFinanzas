@@ -310,12 +310,12 @@
     }
 
     .nav-icon {
-      font-size: 22px;
+      font-size: 20px;
       margin-bottom: 2px
     }
 
     .nav-label {
-      font-size: 9px;
+      font-size: 8px;
       font-weight: 700;
       letter-spacing: .3px
     }
@@ -1495,6 +1495,22 @@
       font-weight: 800;
       margin-top: 2px
     }
+    /* SUBSCRIPTIONS */
+    .sub-item{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin:0 16px 10px;display:flex;align-items:center;gap:12px}
+    .sub-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(124,58,237,.15);flex-shrink:0}
+    .sub-info{flex:1;min-width:0}
+    .sub-name{font-size:14px;font-weight:800;color:var(--text)}
+    .sub-meta{font-size:12px;color:var(--text3);margin-top:2px}
+    .sub-amount{text-align:right;flex-shrink:0}
+    .sub-price{font-size:16px;font-weight:800;color:var(--red)}
+    .sub-next{font-size:10px;color:var(--text3);margin-top:2px}
+    .sub-actions{display:flex;gap:4px;flex-shrink:0}
+    .sub-actions button{background:var(--bg3);border:1px solid var(--border);color:var(--text3);border-radius:8px;width:30px;height:30px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    .sub-actions button:active{transform:scale(.9)}
+    .sub-total-bar{display:flex;gap:10px;padding:0 16px 14px}
+    .sub-total-box{flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;text-align:center}
+    .sub-total-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
+    .sub-total-value{font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;margin-top:4px}
   </style>
 </head>
 
@@ -1749,6 +1765,23 @@
       <div id="cards-list"></div>
     </div>
 
+    <!-- ══════════ SUBSCRIPTIONS ══════════ -->
+    <div id="subs-screen" class="screen page-scroll">
+      <div class="top-bar">
+        <div class="top-title">🔄 Suscripciones</div>
+        <button class="btn btn-sm btn-primary" onclick="openSubModal()">+ Nueva</button>
+      </div>
+      <div class="person-toggle" style="padding:4px 16px 0;">
+        <button class="person-btn active" onclick="filterPerson('me',this)">👤 Yo</button>
+        <button class="person-btn" onclick="filterPerson('partner',this)">💑 <span class="partner-name-label">Pareja</span></button>
+      </div>
+      <div class="sub-total-bar" id="subs-total-wrap" style="display:none;">
+        <div class="sub-total-box"><div class="sub-total-label">Gasto mensual</div><div class="sub-total-value" id="subs-monthly" style="color:var(--red);">RD$0</div></div>
+        <div class="sub-total-box"><div class="sub-total-label">Activas</div><div class="sub-total-value" id="subs-count" style="color:var(--primary-light);">0</div></div>
+      </div>
+      <div id="subs-list"></div>
+    </div>
+
     <!-- ══════════ PROFILE ══════════ -->
     <div id="profile-screen" class="screen page-scroll">
       <div class="top-bar">
@@ -1813,6 +1846,8 @@
           class="nav-icon">🎯</span><span class="nav-label">Metas</span></button>
       <button class="nav-item" onclick="showTab('cards-screen')" data-tab="cards-screen"><span
           class="nav-icon">🏦</span><span class="nav-label">Tarjetas</span></button>
+      <button class="nav-item" onclick="showTab('subs-screen')" data-tab="subs-screen"><span
+          class="nav-icon">🔄</span><span class="nav-label">Suscrip.</span></button>
       <button class="nav-item" onclick="showTab('profile-screen')" data-tab="profile-screen"><span
           class="nav-icon">👤</span><span class="nav-label">Perfil</span></button>
     </nav>
@@ -1939,6 +1974,25 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="sub-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="sub-modal-title">🔄 Nueva Suscripción</div>
+    <div class="form-group"><label class="form-label">Tipo</label>
+      <div id="sub-type-grid" class="cat-grid"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Ícono</label>
+      <div id="sub-icon-grid" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="sub-name" placeholder="Ej: Netflix, Gym, Luz"></div>
+    <div class="form-group"><label class="form-label">Monto mensual</label><input type="number" class="amount-input" id="sub-amount" placeholder="0.00" min="0" step="0.01"></div>
+    <div class="form-group"><label class="form-label">Día de cobro (del mes)</label><input type="number" class="form-input" id="sub-day" placeholder="Ej: 5" min="1" max="31" inputmode="numeric"></div>
+    <div class="form-group"><label class="form-label">Cobrar de</label><select class="form-input" id="sub-card"></select></div>
+    <button class="btn btn-primary" onclick="saveSub()" style="margin-top:8px;">💾 Guardar</button>
+    <button class="btn btn-secondary" onclick="closeModal('sub-modal')">Cancelar</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
     <div class="xp-popup" id="xp-popup">+10 XP ⭐</div>
   </div><!-- /app -->
@@ -1974,7 +2028,7 @@
     let txType = 'expense', selCat = 'food', curGoalId = null, txFilter = 'all', activePerson = 'me';
     const NOW = new Date();
     let vYear = NOW.getFullYear(), vMonth = NOW.getMonth();
-    let S = { transactions: {}, budgets: {}, goals: {}, cards: {}, profile: { name: '', xp: 0, streak: 0, lastActiveDate: '', achievements: [], txCount: 0 }, partnerProfile: null };
+    let S = { transactions: {}, budgets: {}, goals: {}, cards: {}, subs: {}, profile: { name: '', xp: 0, streak: 0, lastActiveDate: '', achievements: [], txCount: 0 }, partnerProfile: null };
 
     // ════════════════════════════════════
     //   INIT — FIREBASE AUTOMÁTICO
@@ -2075,6 +2129,7 @@
       db.ref(p + '/budgets').on('value', s => { S.budgets = s.val() || {}; renderBudget(); });
       db.ref(p + '/goals').on('value', s => { S.goals = s.val() || {}; renderGoals(); });
       db.ref(p + '/cards').on('value', s => { S.cards = s.val() || {}; renderCards(); });
+      db.ref(p + '/subs').on('value', s => { S.subs = s.val() || {}; renderSubs(); processAutoCharges(); });
       db.ref(p + '/profiles').on('value', s => {
         const profiles = s.val() || {};
         console.log('[DuoFinanzas] profiles snapshot, uids:', Object.keys(profiles));
@@ -2121,6 +2176,7 @@
       if (t === 'budget-screen') renderBudget();
       if (t === 'savings-screen') renderGoals();
       if (t === 'cards-screen') renderCards();
+      if (t === 'subs-screen') renderSubs();
       if (t === 'profile-screen') renderProfile();
     }
 
@@ -2141,7 +2197,7 @@
     // ════════════════════════════════════
     //   RENDER
     // ════════════════════════════════════
-    function renderAll() { renderHome(); renderTransactions(); renderBudget(); renderGoals(); renderCards(); renderProfile(); }
+    function renderAll() { renderHome(); renderTransactions(); renderBudget(); renderGoals(); renderCards(); renderSubs(); renderProfile(); }
 
     function renderHome() {
       const h = new Date().getHours(), gr = h < 12 ? '¡Buenos días' : h < 18 ? '¡Buenas tardes' : '¡Buenas noches';
@@ -2586,6 +2642,136 @@
       if(!confirm('¿Eliminar esta meta de ahorro?'))return;
       await db.ref(path()+'/goals/'+id).remove();
       showToast('🗑️ Meta eliminada');
+    }
+
+    // ════════════════════════════════════
+    //   SUBSCRIPTIONS / SUSCRIPCIONES
+    // ════════════════════════════════════
+    const SUB_TYPES=[{id:'subscription',label:'📺 Suscripción'},{id:'service',label:'🏠 Servicio'},{id:'membership',label:'💪 Membresía'}];
+    const SUB_ICONS=['📺','🎵','🎮','💻','☁️','📱','💪','💡','🌐','💧','⚡','📞','🏠','🚗','🎓','🔒','📦','🩺'];
+    let _subType='subscription',_subIcon='📺',_editSubId=null;
+
+    function renderSubs(){
+      const c=g('subs-list');if(!c)return;
+      const myName=S.profile.name||'';
+      const partnerName=S.partnerProfile?S.partnerProfile.name:'';
+      const allSubs=Object.entries(S.subs).map(([k,v])=>({...v,id:k}));
+      const subs=!partnerName?allSubs:activePerson==='me'
+        ?allSubs.filter(s=>s.addedBy===myName||!s.addedBy)
+        :allSubs.filter(s=>s.addedBy===partnerName);
+      const wrap=g('subs-total-wrap');
+      if(!subs.length){
+        if(wrap)wrap.style.display='none';
+        c.innerHTML='<div class="empty-state" style="padding:60px 20px;"><div class="empty-icon">🔄</div><div class="empty-text">Sin suscripciones aún</div><div style="margin-top:6px;font-size:13px;color:var(--text3);">Agrega tus suscripciones y servicios recurrentes</div></div>';
+        return;
+      }
+      if(wrap)wrap.style.display='flex';
+      let monthly=0;subs.forEach(s=>monthly+=s.amount||0);
+      el('subs-monthly',fmt(monthly));el('subs-count',subs.length);
+      const today=new Date().getDate();
+      c.innerHTML=subs.map(s=>{
+        const typeObj=SUB_TYPES.find(t=>t.id===s.subType)||SUB_TYPES[0];
+        const cardName=s.cardId&&S.cards[s.cardId]?S.cards[s.cardId].name:'Sin asignar';
+        const nextDay=s.chargeDay||1;
+        const daysLeft=nextDay>=today?nextDay-today:(new Date(new Date().getFullYear(),new Date().getMonth()+1,0).getDate()-today+nextDay);
+        const lastCharged=s.lastCharged||'';
+        const thisMonth=new Date().getFullYear()+'-'+(new Date().getMonth()+1);
+        const chargedThisMonth=lastCharged===thisMonth;
+        return`<div class="sub-item">
+          <div class="sub-icon">${s.icon||'🔄'}</div>
+          <div class="sub-info">
+            <div class="sub-name">${esc(s.name)}</div>
+            <div class="sub-meta">${typeObj.label} · ${cardName} · Día ${nextDay}</div>
+          </div>
+          <div class="sub-amount">
+            <div class="sub-price">${fmt(s.amount)}</div>
+            <div class="sub-next">${chargedThisMonth?'✅ Cobrado':'⏳ en '+daysLeft+' días'}</div>
+          </div>
+          <div class="sub-actions">
+            <button onclick="openEditSub('${s.id}')" title="Editar">✏️</button>
+            <button onclick="deleteSub('${s.id}')" title="Eliminar">🗑️</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function openSubModal(){
+      _editSubId=null;_subType='subscription';_subIcon='📺';
+      el('sub-modal-title','🔄 Nueva Suscripción');
+      g('sub-name').value='';g('sub-amount').value='';g('sub-day').value='';
+      renderSubTypeGrid();renderSubIconGrid();renderCardSelect('sub-card',true,false);
+      openModal('sub-modal');
+    }
+
+    function openEditSub(id){
+      const s=S.subs[id];if(!s)return;
+      _editSubId=id;_subType=s.subType||'subscription';_subIcon=s.icon||'📺';
+      el('sub-modal-title','✏️ Editar Suscripción');
+      g('sub-name').value=s.name||'';g('sub-amount').value=s.amount||'';g('sub-day').value=s.chargeDay||'';
+      renderSubTypeGrid();renderSubIconGrid();renderCardSelect('sub-card',true,false);
+      const sel=g('sub-card');if(sel&&s.cardId)sel.value=s.cardId;
+      openModal('sub-modal');
+    }
+
+    function selectSubType(t){_subType=t;renderSubTypeGrid();}
+    function renderSubTypeGrid(){
+      const gr=g('sub-type-grid');if(!gr)return;
+      gr.innerHTML=SUB_TYPES.map(t=>`<button class="cat-pill ${t.id===_subType?'selected':''}" onclick="selectSubType('${t.id}')">${t.label}</button>`).join('');
+    }
+
+    function selSubIcon(btn,icon){
+      _subIcon=icon;
+      document.querySelectorAll('#sub-icon-grid button').forEach(b=>b.style.background='none');
+      btn.style.background='rgba(124,58,237,.3)';
+    }
+    function renderSubIconGrid(){
+      const gr=g('sub-icon-grid');if(!gr)return;
+      gr.innerHTML=SUB_ICONS.map(e=>`<button onclick="selSubIcon(this,'${e}')" style="font-size:24px;background:${e===_subIcon?'rgba(124,58,237,.3)':'none'};border:none;cursor:pointer;padding:4px 6px;border-radius:8px;">${e}</button>`).join('');
+    }
+
+    async function saveSub(){
+      const name=g('sub-name').value.trim(),amount=parseFloat(g('sub-amount').value)||0;
+      const chargeDay=parseInt(g('sub-day').value)||1,cardId=g('sub-card').value||'';
+      if(!name){showToast('⚠️ Escribe el nombre');return;}
+      if(!amount){showToast('⚠️ Ingresa el monto');return;}
+      if(!cardId){showToast('⚠️ Selecciona una tarjeta');return;}
+      const data={name,amount,chargeDay,cardId,subType:_subType,icon:_subIcon,addedBy:S.profile.name||'Usuario',lastCharged:_editSubId?(S.subs[_editSubId].lastCharged||''):''};
+      if(_editSubId){
+        await db.ref(path()+'/subs/'+_editSubId).update(data);
+        showToast('✅ Suscripción actualizada');
+      } else {
+        await db.ref(path()+'/subs').push(data);
+        addXP(10);await saveUserData();
+        showToast('✅ Suscripción agregada!');
+      }
+      closeModal('sub-modal');
+    }
+
+    async function deleteSub(id){
+      if(!confirm('¿Eliminar esta suscripción?'))return;
+      await db.ref(path()+'/subs/'+id).remove();
+      showToast('🗑️ Suscripción eliminada');
+    }
+
+    async function processAutoCharges(){
+      const today=new Date();
+      const dayOfMonth=today.getDate();
+      const thisMonth=today.getFullYear()+'-'+(today.getMonth()+1);
+      const myName=S.profile.name||'';
+      for(const[id,sub]of Object.entries(S.subs)){
+        // Only charge my own subs
+        if(sub.addedBy&&sub.addedBy!==myName)continue;
+        // Check if due today and not yet charged this month
+        if(sub.chargeDay===dayOfMonth&&sub.lastCharged!==thisMonth&&sub.cardId){
+          // Charge the card
+          await updateCardBalance(sub.cardId,-sub.amount);
+          // Record as transaction
+          await saveTx({type:'expense',amount:sub.amount,desc:sub.name+' (auto)',category:'services',date:today.toISOString().slice(0,10),addedBy:myName,timestamp:Date.now(),cardId:sub.cardId,isAutoCharge:true});
+          // Mark as charged
+          await db.ref(path()+'/subs/'+id+'/lastCharged').set(thisMonth);
+          showToast('🔄 '+sub.name+' cobrado: '+fmt(sub.amount));
+        }
+      }
     }
 
     // ════════════════════════════════════
