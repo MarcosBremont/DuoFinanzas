@@ -512,10 +512,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
     <div class="modal-title" id="card-modal-title">💳 Nueva Tarjeta</div>
     <div class="form-group">
       <label class="form-label">Tipo de tarjeta</label>
-      <div class="type-selector">
-        <button class="type-btn selected expense" id="card-type-debit" onclick="selectCardType('debit')">🏦 Débito</button>
-        <button class="type-btn income" id="card-type-credit" onclick="selectCardType('credit')">💳 Crédito</button>
-      </div>
+      <div id="card-type-grid" class="cat-grid"></div>
     </div>
     <div class="form-group"><label class="form-label">Nombre de la tarjeta</label><input class="form-input" id="card-name" placeholder="Ej: Visa Popular, Mastercard BHD"></div>
     <div class="form-group"><label class="form-label">Saldo disponible</label><input type="number" class="amount-input" id="card-balance" placeholder="0.00" min="0" step="0.01"></div>
@@ -967,6 +964,7 @@ async function addToGoal(){
 //   CARDS / TARJETAS
 // ════════════════════════════════════
 const CARD_COLORS=[{id:'purple',bg:'linear-gradient(135deg,#7c3aed,#a855f7)'},{id:'blue',bg:'linear-gradient(135deg,#2563eb,#60a5fa)'},{id:'green',bg:'linear-gradient(135deg,#059669,#34d399)'},{id:'pink',bg:'linear-gradient(135deg,#be185d,#ec4899)'},{id:'orange',bg:'linear-gradient(135deg,#d97706,#fbbf24)'},{id:'dark',bg:'linear-gradient(135deg,#1e293b,#475569)'}];
+const CARD_TYPES=[{id:'debit',label:'🏦 Débito',display:'TARJETA DE DÉBITO'},{id:'credit',label:'💳 Crédito',display:'TARJETA DE CRÉDITO'},{id:'savings',label:'🐷 Ahorro',display:'CUENTA DE AHORRO'},{id:'checking',label:'🏛️ Corriente',display:'CUENTA CORRIENTE'},{id:'passbook',label:'📒 Libreta',display:'LIBRETA DE AHORRO'}];
 let _cardType='debit',_cardColor='purple',_editCardId=null;
 
 function renderCards(){
@@ -987,7 +985,7 @@ function renderCards(){
   let total=0;cards.forEach(cd=>total+=cd.balance||0);
   el('cards-total',fmt(total));el('cards-count',cards.length);
   c.innerHTML=cards.map(cd=>{
-    const typeLabel=cd.type==='credit'?'TARJETA DE CRÉDITO':'TARJETA DE DÉBITO';
+    const typeObj=CARD_TYPES.find(ct=>ct.id===cd.type)||CARD_TYPES[0];const typeLabel=typeObj.display;
     const last4=cd.last4?'•••• '+cd.last4:'';
     return`<div class="wallet-card grad-${cd.color||'purple'}">
       <div class="wallet-card-actions">
@@ -1021,8 +1019,8 @@ function openEditCard(id){
 
 function selectCardType(t){_cardType=t;renderCardTypeButtons();}
 function renderCardTypeButtons(){
-  g('card-type-debit').className='type-btn'+(_cardType==='debit'?' selected expense':'');
-  g('card-type-credit').className='type-btn'+(_cardType==='credit'?' selected income':'');
+  const gr=g('card-type-grid');if(!gr)return;
+  gr.innerHTML=CARD_TYPES.map(ct=>`<button class="cat-pill ${ct.id===_cardType?'selected':''}" onclick="selectCardType('${ct.id}')">${ct.label}</button>`).join('');
 }
 
 function renderCardColors(){
