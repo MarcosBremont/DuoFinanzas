@@ -1577,7 +1577,7 @@
             class="partner-name-label">Pareja</span></button>
       </div>
       <div class="card balance-card animate-in">
-        <div class="balance-label">SALDO DEL MES</div>
+        <div class="balance-label">MI BALANCE TOTAL</div>
         <div class="balance-amount" id="home-balance">RD$0</div>
         <div class="balance-sub" id="home-month-label">este mes</div>
         <div class="balance-grid">
@@ -1590,10 +1590,14 @@
             <div class="balance-mini-value" id="home-expense">RD$0</div>
           </div>
         </div>
-        <div class="balance-grid" style="grid-template-columns:1fr;margin-top:8px;">
+        <div class="balance-grid" style="margin-top:8px;">
           <div class="balance-mini">
             <div class="balance-mini-label">🏦 EN TARJETAS</div>
             <div class="balance-mini-value" id="home-cards-total">RD$0</div>
+          </div>
+          <div class="balance-mini">
+            <div class="balance-mini-label">💳 DEUDA CRÉDITO</div>
+            <div class="balance-mini-value" id="home-credit-debt" style="color:#fca5a5;">RD$0</div>
           </div>
         </div>
       </div>
@@ -1832,6 +1836,7 @@
         </div>
         <div class="form-group"><label class="form-label">Fecha</label><input type="date" class="form-input"
             id="tx-date"></div>
+        <div class="form-group"><label class="form-label">Tarjeta / Cuenta</label><select class="form-input" id="tx-card"></select></div>
         <button class="btn btn-primary" onclick="doSaveTx()" style="margin-top:8px;">💾 Guardar</button>
         <button class="btn btn-secondary" onclick="closeModal('tx-modal')">Cancelar</button>
       </div>
@@ -1874,6 +1879,7 @@
         <div class="modal-title">💰 Añadir a <span id="goal-add-name"></span></div>
         <div class="form-group"><label class="form-label">Monto a añadir</label><input type="number"
             class="amount-input" id="goal-add-amount" placeholder="0.00"></div>
+        <div class="form-group"><label class="form-label">Descontar de</label><select class="form-input" id="goal-source-card"></select></div>
         <button class="btn btn-success" onclick="addToGoal()" style="margin-top:8px;">+ Añadir ahorro</button>
         <button class="btn btn-secondary" onclick="closeModal('add-goal-modal')">Cancelar</button>
       </div>
@@ -1917,7 +1923,23 @@
       </div>
     </div>
 
-    <div class="toast" id="toast"></div>
+    <div class="modal-overlay" id="pay-credit-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">💸 Pagar Tarjeta de Crédito</div>
+    <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;">
+      <div style="font-size:12px;color:var(--text3);font-weight:700;">PAGANDO A:</div>
+      <div style="font-size:18px;font-weight:800;color:var(--text);" id="pay-credit-name"></div>
+      <div style="font-size:14px;color:var(--red);font-weight:700;" id="pay-credit-debt"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Monto a pagar</label><input type="number" class="amount-input" id="pay-credit-amount" placeholder="0.00" min="0" step="0.01"></div>
+    <div class="form-group"><label class="form-label">Pagar desde</label><select class="form-input" id="pay-credit-source"></select></div>
+    <button class="btn btn-success" onclick="doPayCredit()" style="margin-top:8px;">💸 Pagar</button>
+    <button class="btn btn-secondary" onclick="closeModal('pay-credit-modal')">Cancelar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
     <div class="xp-popup" id="xp-popup">+10 XP ⭐</div>
   </div><!-- /app -->
 
@@ -2135,10 +2157,12 @@
         ? allCards.filter(c => c.addedBy === myName || !c.addedBy)
         : allCards.filter(c => c.addedBy === partnerName);
       let cardsBal = 0; myCards.forEach(cd => { if (cd.type !== 'credit') cardsBal += cd.balance || 0; });
-      const bal = inc - exp + cardsBal;
+      let creditDebt = 0; myCards.forEach(cd => { if (cd.type === 'credit') creditDebt += (cd.creditLimit || 0) - (cd.available || 0); });
+      const bal = cardsBal - creditDebt;
       const be = g('home-balance'); if (be) { be.textContent = fmt(bal); be.style.color = bal >= 0 ? 'white' : '#fca5a5'; }
       el('home-income', fmt(inc)); el('home-expense', fmt(exp));
       el('home-cards-total', fmt(cardsBal));
+      el('home-credit-debt', fmt(creditDebt));
       el('home-month-label', MONTHS[NOW.getMonth()] + ' ' + NOW.getFullYear());
       el('streak-count', S.profile.streak || 0);
       renderXP(); renderStreakWeek(); renderRecentTxs();
@@ -2178,11 +2202,18 @@
     function txHtml(tx, hideDelete = false) {
       const cat = getCat(tx.type, tx.category), sign = tx.type === 'income' ? '+' : '-';
       const delBtn = hideDelete ? '' : `<button class="tx-delete" onclick="deleteTx('${tx.id}')" title="Eliminar">🗑️</button>`;
-      return `<div class="tx-item"><div class="tx-icon ${tx.type}">${cat.emoji}</div><div class="tx-info"><div class="tx-name">${esc(tx.desc || cat.label)}</div><div class="tx-meta">${cat.label} · ${fmtDate(tx.date)}${tx.addedBy ? ' · ' + tx.addedBy : ''}</div></div><div class="tx-amount ${tx.type}">${sign}${fmt(tx.amount)}</div>${delBtn}</div>`;
+      const cardName=tx.cardId&&S.cards[tx.cardId]?S.cards[tx.cardId].name:'Efectivo';
+      return `<div class="tx-item"><div class="tx-icon ${tx.type}">${cat.emoji}</div><div class="tx-info"><div class="tx-name">${esc(tx.desc || cat.label)}</div><div class="tx-meta">${cat.label} · ${fmtDate(tx.date)} · ${cardName}${tx.addedBy ? ' · ' + tx.addedBy : ''}</div></div><div class="tx-amount ${tx.type}">${sign}${fmt(tx.amount)}</div>${delBtn}</div>`;
     }
 
     async function deleteTx(id) {
       if (!confirm('¿Eliminar esta transacción?')) return;
+      const tx=S.transactions[id];
+      if(tx&&tx.cardId){
+        // Reverse: if it was income, subtract; if expense, add back
+        const delta=tx.type==='income'?-tx.amount:tx.amount;
+        await updateCardBalance(tx.cardId,delta);
+      }
       await db.ref(path() + '/transactions/' + id).remove();
       showToast('🗑️ Transacción eliminada');
     }
@@ -2254,7 +2285,7 @@
       if (!goals.length) { c.innerHTML = '<div class="empty-state" style="padding:60px 20px;"><div class="empty-icon">🎯</div><div class="empty-text">¡Sin metas aún!</div><div style="margin-top:6px;font-size:13px;color:var(--text3);">Crea tu primera meta de ahorro</div></div>'; return; }
       c.innerHTML = goals.map(g2 => {
         const pct = Math.min(100, g2.target > 0 ? ((g2.current || 0) / g2.target) * 100 : 0), done = pct >= 100;
-        return `<div class="goal-card" style="margin:0 16px 12px;${done ? 'border-color:var(--gold);' : ''}">${done ? '<div style="position:absolute;top:8px;right:12px;font-size:22px;">🏆</div>' : ''}<div class="goal-header"><div class="goal-emoji">${g2.emoji || '🎯'}</div><div><div class="goal-name">${esc(g2.name)}</div><div class="goal-target">Meta: ${fmt(g2.target)}${g2.deadline ? ' · ' + fmtDate(g2.deadline) : ''}</div></div></div><div class="goal-bar-wrap"><div class="goal-bar" style="width:${pct}%"></div></div><div class="goal-progress-text"><span style="color:var(--accent2);">${fmt(g2.current || 0)}</span><span style="color:var(--text3);">${Math.round(pct)}%</span></div>${!done ? `<button class="goal-add-btn" onclick="openAddToGoal('${g2.id}','${esc(g2.name)}')">+ Añadir dinero</button>` : '<div style="color:var(--gold);font-size:13px;font-weight:800;margin-top:6px;">¡Meta alcanzada! 🎉</div>'}</div>`;
+        return `<div class="goal-card" style="margin:0 16px 12px;${done ? 'border-color:var(--gold);' : ''}">${done ? '<div style="position:absolute;top:8px;right:12px;font-size:22px;">🏆</div>' : ''}<div class="goal-header"><div class="goal-emoji">${g2.emoji || '🎯'}</div><div><div class="goal-name">${esc(g2.name)}</div><div class="goal-target">Meta: ${fmt(g2.target)}${g2.deadline ? ' · ' + fmtDate(g2.deadline) : ''}</div></div></div><div class="goal-bar-wrap"><div class="goal-bar" style="width:${pct}%"></div></div><div class="goal-progress-text"><span style="color:var(--accent2);">${fmt(g2.current || 0)}</span><span style="color:var(--text3);">${Math.round(pct)}%</span></div>${!done ? `<div style="display:flex;gap:8px;margin-top:8px;"><button class="goal-add-btn" style="flex:1;margin:0;" onclick="openAddToGoal('${g2.id}','${esc(g2.name)}')">+ Añadir dinero</button><button class="goal-add-btn" style="margin:0;color:var(--red);border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.1);" onclick="deleteGoal('${g2.id}')">🗑️</button></div>` : '<div style="display:flex;gap:8px;margin-top:6px;align-items:center;"><div style="color:var(--gold);font-size:13px;font-weight:800;flex:1;">¡Meta alcanzada! 🎉</div><button class="goal-add-btn" style="margin:0;color:var(--red);border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.1);" onclick="deleteGoal(\''+g2.id+'\')">🗑️</button></div>'}</div>`;
       }).join('');
     }
 
@@ -2286,11 +2317,21 @@
     // ════════════════════════════════════
     //   TRANSACTION FORM
     // ════════════════════════════════════
+    function getMyCards(includeCredit){
+      const myName=S.profile.name||'';
+      return Object.entries(S.cards).filter(([k,c])=>c.addedBy===myName||!c.addedBy).filter(([k,c])=>includeCredit||c.type!=='credit').map(([k,c])=>({id:k,...c}));
+    }
+    function renderCardSelect(selId,includeCredit,includeCash){
+      const cards=getMyCards(includeCredit);
+      let html=includeCash?'<option value="">💵 Efectivo (sin tarjeta)</option>':'<option value="">— Seleccionar —</option>';
+      cards.forEach(c=>{const bal=c.type==='credit'?fmt(c.available||0):fmt(c.balance||0);html+=`<option value="${c.id}">${c.name} (${bal})</option>`;});
+      const sel=g(selId);if(sel)sel.innerHTML=html;
+    }
     function openAddTransaction() {
       txType = 'expense'; selCat = 'food';
       g('tx-amount').value = ''; g('tx-desc').value = '';
       g('tx-date').value = new Date().toISOString().slice(0, 10);
-      renderCatGrid(); openModal('tx-modal');
+      renderCatGrid(); renderCardSelect('tx-card',true,true); openModal('tx-modal');
     }
     function renderCatGrid() {
       const gr = g('cat-grid'); if (!gr) return;
@@ -2304,12 +2345,27 @@
     }
     function selCategory(c) { selCat = c; renderCatGrid(); }
 
+    async function updateCardBalance(cardId,delta){
+      if(!cardId)return;
+      const card=S.cards[cardId];if(!card)return;
+      const ref=db.ref(path()+'/cards/'+cardId);
+      if(card.type==='credit'){
+        const newAvail=Math.min((card.available||0)+delta,card.creditLimit||Infinity);
+        await ref.update({available:newAvail});
+      } else {
+        await ref.update({balance:(card.balance||0)+delta});
+      }
+    }
     async function doSaveTx() {
       const amount = parseFloat(g('tx-amount').value), desc = g('tx-desc').value.trim(), date = g('tx-date').value;
+      const cardId = g('tx-card').value || '';
       if (!amount || amount <= 0) { showToast('⚠️ Ingresa un monto válido'); return; }
       if (!date) { showToast('⚠️ Selecciona una fecha'); return; }
-      const tx = { type: txType, amount, desc: desc || getCat(txType, selCat).label, category: selCat, date, addedBy: S.profile.name || 'Usuario', timestamp: Date.now() };
-      await saveTx(tx); closeModal('tx-modal');
+      const tx = { type: txType, amount, desc: desc || getCat(txType, selCat).label, category: selCat, date, addedBy: S.profile.name || 'Usuario', timestamp: Date.now(), cardId };
+      await saveTx(tx);
+      // Update card balance: income adds, expense subtracts
+      if(cardId){const delta=txType==='income'?amount:-amount;await updateCardBalance(cardId,delta);}
+      closeModal('tx-modal');
       addXP(15); S.profile.txCount = (S.profile.txCount || 0) + 1;
       unlock('first_tx'); if ((S.profile.xp || 0) >= 100) unlock('100_xp');
       await saveUserData(); renderAll();
@@ -2352,12 +2408,16 @@
       unlock('first_goal'); addXP(25); await saveUserData();
       closeModal('goal-modal'); showToast('🎯 ¡Meta creada!');
     }
-    function openAddToGoal(goalId, goalName) { curGoalId = goalId; el('goal-add-name', goalName); g('goal-add-amount').value = ''; openModal('add-goal-modal'); }
+    function openAddToGoal(goalId, goalName) { curGoalId = goalId; el('goal-add-name', goalName); g('goal-add-amount').value = ''; renderCardSelect('goal-source-card',false,false); openModal('add-goal-modal'); }
     async function addToGoal() {
       const amount = parseFloat(g('goal-add-amount').value);
+      const sourceCardId = g('goal-source-card').value;
       if (!amount || amount <= 0) { showToast('⚠️ Ingresa un monto válido'); return; }
+      if (!sourceCardId) { showToast('⚠️ Selecciona de qué tarjeta descontar'); return; }
       const goal = S.goals[curGoalId]; if (!goal) return;
       const newVal = (goal.current || 0) + amount;
+      // Deduct from source card
+      await updateCardBalance(sourceCardId, -amount);
       await db.ref(path() + '/goals/' + curGoalId + '/current').set(newVal);
       if (newVal >= goal.target) { unlock('goal_complete'); showToast('🏆 ¡Meta alcanzada! ¡Felicidades!'); }
       else showToast('💰 +' + fmt(amount) + ' añadido a la meta');
@@ -2405,6 +2465,7 @@
         const balLabel = isCred ? 'DISPONIBLE' : '';
         return `<div class="wallet-card grad-${cd.color || 'purple'}">
       <div class="wallet-card-actions">
+        ${isCred?'<button class="wallet-card-btn" onclick="openPayCredit(\''+cd.id+'\')" title="Pagar">💸</button>':''}
         <button class="wallet-card-btn" onclick="openEditCard('${cd.id}')" title="Editar">✏️</button>
         <button class="wallet-card-btn" onclick="deleteCard('${cd.id}')" title="Eliminar">🗑️</button>
       </div>
@@ -2490,6 +2551,41 @@
       if (!confirm('¿Eliminar esta tarjeta?')) return;
       await db.ref(path() + '/cards/' + id).remove();
       showToast('🗑️ Tarjeta eliminada');
+    }
+
+    let _payCardId=null;
+    function openPayCredit(id){
+      const cd=S.cards[id];if(!cd)return;
+      _payCardId=id;
+      const owed=(cd.creditLimit||0)-(cd.available||0);
+      el('pay-credit-name',cd.name);
+      el('pay-credit-debt','Deuda actual: '+fmt(owed));
+      g('pay-credit-amount').value='';
+      // Only show non-credit cards as source
+      const myName=S.profile.name||'';
+      const debitCards=Object.entries(S.cards).filter(([k,c])=>(c.addedBy===myName||!c.addedBy)&&c.type!=='credit').map(([k,c])=>({id:k,...c}));
+      let html='<option value="">— Seleccionar —</option>';
+      debitCards.forEach(c=>{html+=`<option value="${c.id}">${c.name} (${fmt(c.balance||0)})</option>`;});
+      g('pay-credit-source').innerHTML=html;
+      openModal('pay-credit-modal');
+    }
+    async function doPayCredit(){
+      const amount=parseFloat(g('pay-credit-amount').value);
+      const sourceId=g('pay-credit-source').value;
+      if(!amount||amount<=0){showToast('⚠️ Ingresa un monto válido');return;}
+      if(!sourceId){showToast('⚠️ Selecciona desde qué tarjeta pagar');return;}
+      // Deduct from source debit card
+      await updateCardBalance(sourceId,-amount);
+      // Add available to credit card
+      await updateCardBalance(_payCardId,amount);
+      closeModal('pay-credit-modal');
+      showToast('✅ Pago de '+fmt(amount)+' aplicado');
+    }
+
+    async function deleteGoal(id){
+      if(!confirm('¿Eliminar esta meta de ahorro?'))return;
+      await db.ref(path()+'/goals/'+id).remove();
+      showToast('🗑️ Meta eliminada');
     }
 
     // ════════════════════════════════════
