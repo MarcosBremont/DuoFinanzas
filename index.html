@@ -2064,6 +2064,20 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="pay-sub-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">💸 Pagar Suscripción</div>
+    <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;">
+      <div style="font-size:18px;font-weight:800;color:var(--text);" id="pay-sub-name"></div>
+      <div style="font-size:22px;font-weight:900;color:var(--red);font-family:'Baloo 2',cursive;" id="pay-sub-amount"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Pagar con</label><select class="form-input" id="pay-sub-card"></select></div>
+    <button class="btn btn-success" onclick="confirmPaySub()" style="margin-top:8px;">💸 Pagar ahora</button>
+    <button class="btn btn-secondary" onclick="closeModal('pay-sub-modal')">Cancelar</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="sub-modal">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -2987,15 +3001,28 @@
       showToast('🗑️ Suscripción eliminada');
     }
 
-    async function paySubNow(id){
+    let _paySubId=null;
+    function paySubNow(id){
       const sub=S.subs[id];if(!sub)return;
-      if(!confirm('¿Pagar '+sub.name+' ('+fmt(sub.amount)+') ahora?'))return;
+      _paySubId=id;
+      el('pay-sub-name',sub.name);
+      el('pay-sub-amount',fmt(sub.amount));
+      renderCardSelect('pay-sub-card',true,false);
+      // Pre-select the assigned card
+      const sel=g('pay-sub-card');if(sel&&sub.cardId)sel.value=sub.cardId;
+      openModal('pay-sub-modal');
+    }
+    async function confirmPaySub(){
+      const sub=S.subs[_paySubId];if(!sub)return;
+      const cardId=g('pay-sub-card').value;
+      if(!cardId){showToast('⚠️ Selecciona una tarjeta');return;}
       const today=new Date();
       const thisMonth=today.getFullYear()+'-'+(today.getMonth()+1);
       const myName=S.profile.name||'';
-      await updateCardBalance(sub.cardId,-sub.amount);
-      await saveTx({type:'expense',amount:sub.amount,desc:sub.name,category:'services',date:today.toISOString().slice(0,10),addedBy:myName,timestamp:Date.now(),cardId:sub.cardId,isAutoCharge:true});
-      await db.ref(path()+'/subs/'+id+'/lastCharged').set(thisMonth);
+      await updateCardBalance(cardId,-sub.amount);
+      await saveTx({type:'expense',amount:sub.amount,desc:sub.name,category:'services',date:today.toISOString().slice(0,10),addedBy:myName,timestamp:Date.now(),cardId,isAutoCharge:true});
+      await db.ref(path()+'/subs/'+_paySubId+'/lastCharged').set(thisMonth);
+      closeModal('pay-sub-modal');
       showToast('✅ '+sub.name+' pagado: '+fmt(sub.amount));
     }
 
