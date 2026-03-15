@@ -514,6 +514,10 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
       <label class="form-label">Tipo de tarjeta</label>
       <div id="card-type-grid" class="cat-grid"></div>
     </div>
+    <div class="form-group" id="card-subtype-group" style="display:none;">
+      <label class="form-label">Tipo de cuenta</label>
+      <div id="card-subtype-grid" class="cat-grid"></div>
+    </div>
     <div class="form-group"><label class="form-label">Nombre de la tarjeta</label><input class="form-input" id="card-name" placeholder="Ej: Visa Popular, Mastercard BHD"></div>
     <div class="form-group"><label class="form-label">Saldo disponible</label><input type="number" class="amount-input" id="card-balance" placeholder="0.00" min="0" step="0.01"></div>
     <div class="form-group"><label class="form-label">Últimos 4 dígitos (opcional)</label><input class="form-input" id="card-last4" placeholder="1234" maxlength="4" inputmode="numeric"></div>
@@ -964,8 +968,10 @@ async function addToGoal(){
 //   CARDS / TARJETAS
 // ════════════════════════════════════
 const CARD_COLORS=[{id:'purple',bg:'linear-gradient(135deg,#7c3aed,#a855f7)'},{id:'blue',bg:'linear-gradient(135deg,#2563eb,#60a5fa)'},{id:'green',bg:'linear-gradient(135deg,#059669,#34d399)'},{id:'pink',bg:'linear-gradient(135deg,#be185d,#ec4899)'},{id:'orange',bg:'linear-gradient(135deg,#d97706,#fbbf24)'},{id:'dark',bg:'linear-gradient(135deg,#1e293b,#475569)'}];
-const CARD_TYPES=[{id:'debit',label:'🏦 Débito',display:'TARJETA DE DÉBITO'},{id:'credit',label:'💳 Crédito',display:'TARJETA DE CRÉDITO'},{id:'savings',label:'🐷 Ahorro',display:'CUENTA DE AHORRO'},{id:'checking',label:'🏛️ Corriente',display:'CUENTA CORRIENTE'},{id:'passbook',label:'📒 Libreta',display:'LIBRETA DE AHORRO'}];
-let _cardType='debit',_cardColor='purple',_editCardId=null;
+const CARD_TYPES=[{id:'debit',label:'🏦 Débito'},{id:'credit',label:'💳 Crédito'},{id:'passbook',label:'📒 Libreta'}];
+const CARD_SUBTYPES=[{id:'savings',label:'🐷 Ahorro'},{id:'checking',label:'🏛️ Corriente'}];
+const CARD_DISPLAY={debit:'TARJETA DE DÉBITO',credit:'TARJETA DE CRÉDITO',passbook:'LIBRETA DE AHORRO','debit-savings':'DÉBITO · AHORRO','debit-checking':'DÉBITO · CORRIENTE'};
+let _cardType='debit',_cardSubtype='savings',_cardColor='purple',_editCardId=null;
 
 function renderCards(){
   const c=g('cards-list');if(!c)return;
@@ -985,7 +991,7 @@ function renderCards(){
   let total=0;cards.forEach(cd=>total+=cd.balance||0);
   el('cards-total',fmt(total));el('cards-count',cards.length);
   c.innerHTML=cards.map(cd=>{
-    const typeObj=CARD_TYPES.find(ct=>ct.id===cd.type)||CARD_TYPES[0];const typeLabel=typeObj.display;
+    const fullType=cd.subtype?cd.type+'-'+cd.subtype:cd.type;const typeLabel=CARD_DISPLAY[fullType]||CARD_DISPLAY[cd.type]||'TARJETA';
     const last4=cd.last4?'•••• '+cd.last4:'';
     return`<div class="wallet-card grad-${cd.color||'purple'}">
       <div class="wallet-card-actions">
@@ -1001,26 +1007,37 @@ function renderCards(){
 }
 
 function openCardModal(){
-  _editCardId=null;_cardType='debit';_cardColor='purple';
+  _editCardId=null;_cardType='debit';_cardSubtype='savings';_cardColor='purple';
   el('card-modal-title','💳 Nueva Tarjeta');
   g('card-name').value='';g('card-balance').value='';g('card-last4').value='';
-  renderCardTypeButtons();renderCardColors();
+  renderCardTypeButtons();renderCardSubtype();renderCardColors();
   openModal('card-modal');
 }
 
 function openEditCard(id){
   const cd=S.cards[id];if(!cd)return;
-  _editCardId=id;_cardType=cd.type||'debit';_cardColor=cd.color||'purple';
+  _editCardId=id;_cardType=cd.type||'debit';_cardSubtype=cd.subtype||'savings';_cardColor=cd.color||'purple';
   el('card-modal-title','✏️ Editar Tarjeta');
   g('card-name').value=cd.name||'';g('card-balance').value=cd.balance||'';g('card-last4').value=cd.last4||'';
-  renderCardTypeButtons();renderCardColors();
+  renderCardTypeButtons();renderCardSubtype();renderCardColors();
   openModal('card-modal');
 }
 
-function selectCardType(t){_cardType=t;renderCardTypeButtons();}
+function selectCardType(t){_cardType=t;renderCardTypeButtons();renderCardSubtype();}
 function renderCardTypeButtons(){
   const gr=g('card-type-grid');if(!gr)return;
   gr.innerHTML=CARD_TYPES.map(ct=>`<button class="cat-pill ${ct.id===_cardType?'selected':''}" onclick="selectCardType('${ct.id}')">${ct.label}</button>`).join('');
+}
+function selectCardSubtype(t){_cardSubtype=t;renderCardSubtype();}
+function renderCardSubtype(){
+  const grp=g('card-subtype-group');if(!grp)return;
+  if(_cardType==='debit'){
+    grp.style.display='block';
+    const gr=g('card-subtype-grid');if(!gr)return;
+    gr.innerHTML=CARD_SUBTYPES.map(ct=>`<button class="cat-pill ${ct.id===_cardSubtype?'selected':''}" onclick="selectCardSubtype('${ct.id}')">${ct.label}</button>`).join('');
+  } else {
+    grp.style.display='none';
+  }
 }
 
 function renderCardColors(){
@@ -1032,7 +1049,8 @@ function selCardColor(c){_cardColor=c;renderCardColors();}
 async function saveCard(){
   const name=g('card-name').value.trim(),balance=parseFloat(g('card-balance').value)||0,last4=g('card-last4').value.trim();
   if(!name){showToast('⚠️ Escribe el nombre de la tarjeta');return;}
-  const data={name,type:_cardType,balance,last4:last4.slice(0,4),color:_cardColor,addedBy:S.profile.name||'Usuario',timestamp:Date.now()};
+  const subtype=_cardType==='debit'?_cardSubtype:'';
+  const data={name,type:_cardType,subtype,balance,last4:last4.slice(0,4),color:_cardColor,addedBy:S.profile.name||'Usuario',timestamp:Date.now()};
   if(_editCardId){
     await db.ref(path()+'/cards/'+_editCardId).update(data);
     showToast('✅ Tarjeta actualizada');
