@@ -1761,6 +1761,18 @@
           <div class="xp-bar" id="budget-overall-bar" style="width:0%"></div>
         </div>
       </div>
+      <div class="card" id="budget-fixed-card" style="display:none;">
+        <div class="card-title">🔄 GASTOS FIJOS (SUSCRIPCIONES)</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <div style="font-size:14px;color:var(--text3);">Total fijo mensual:</div>
+          <div style="font-size:18px;font-weight:800;color:var(--red);" id="budget-fixed-total">RD$0</div>
+        </div>
+        <div id="budget-fixed-list"></div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:13px;color:var(--text3);font-weight:700;">Disponible después de fijos:</div>
+          <div style="font-size:18px;font-weight:800;" id="budget-after-fixed">RD$0</div>
+        </div>
+      </div>
       <div class="card" id="budget-bars"></div>
     </div>
 
@@ -2434,8 +2446,37 @@
       updLabel('budget-month-label');
       const key = vYear + '_' + vMonth, budget = S.budgets[key] || {}, txs = personTxs(monthTxs(vYear, vMonth)).filter(t => t.type === 'expense');
       const totalB = budget.total || 0; let spent = 0; txs.forEach(t => spent += t.amount);
-      el('budget-spent', fmt(spent)); el('budget-total', fmt(totalB));
-      const pct = totalB > 0 ? Math.min(100, (spent / totalB) * 100) : 0;
+      // Subs / fixed expenses
+      const myName=S.profile.name||'';
+      const partnerName=S.partnerProfile?S.partnerProfile.name:'';
+      const allSubs=Object.values(S.subs||{});
+      const mySubs=!partnerName?allSubs:activePerson==='me'
+        ?allSubs.filter(s=>s.addedBy===myName||!s.addedBy)
+        :allSubs.filter(s=>s.addedBy===partnerName);
+      let fixedTotal=0;mySubs.forEach(s=>fixedTotal+=s.amount||0);
+      const fixedCard=g('budget-fixed-card');
+      if(fixedCard){
+        if(mySubs.length){
+          fixedCard.style.display='block';
+          el('budget-fixed-total',fmt(fixedTotal));
+          const afterFixed=totalB-fixedTotal;
+          const afEl=g('budget-after-fixed');
+          if(afEl){afEl.textContent=fmt(afterFixed);afEl.style.color=afterFixed>=0?'var(--green)':'var(--red)';}
+          const fl=g('budget-fixed-list');
+          if(fl){
+            const thisMonth=new Date().getFullYear()+'-'+(new Date().getMonth()+1);
+            fl.innerHTML=mySubs.map(s=>{
+              const paid=(s.lastCharged||'')===thisMonth;
+              return`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(59,31,106,.3);"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">${s.icon||'🔄'}</span><span style="font-size:13px;font-weight:700;color:var(--text);">${esc(s.name)}</span></div><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:14px;font-weight:800;color:var(--red);">${fmt(s.amount)}</span><span style="font-size:11px;color:${paid?'var(--green)':'var(--text3)'};">${paid?'✅':'⏳'}</span></div></div>`;
+            }).join('');
+          }
+        } else {
+          fixedCard.style.display='none';
+        }
+      }
+      const totalSpentWithFixed=spent+fixedTotal;
+      el('budget-spent', fmt(totalSpentWithFixed)); el('budget-total', fmt(totalB));
+      const pct = totalB > 0 ? Math.min(100, (totalSpentWithFixed / totalB) * 100) : 0;
       const ob = g('budget-overall-bar');
       if (ob) { ob.style.width = pct + '%'; ob.style.background = pct > 80 ? 'linear-gradient(90deg,#f87171,#fbbf24)' : 'linear-gradient(90deg,var(--green),var(--accent))'; }
       const c = g('budget-bars'); if (!c) return;
