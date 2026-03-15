@@ -1590,6 +1590,12 @@
             <div class="balance-mini-value" id="home-expense">RD$0</div>
           </div>
         </div>
+        <div class="balance-grid" style="grid-template-columns:1fr;margin-top:8px;">
+          <div class="balance-mini">
+            <div class="balance-mini-label">🏦 EN TARJETAS</div>
+            <div class="balance-mini-value" id="home-cards-total">RD$0</div>
+          </div>
+        </div>
       </div>
       <div class="card animate-in" style="animation-delay:.1s">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -2122,9 +2128,17 @@
       const allHomeTxs = monthTxs(NOW.getFullYear(), NOW.getMonth());
       const txs = personTxs(allHomeTxs);
       let inc = 0, exp = 0; txs.forEach(t => { if (t.type === 'income') inc += t.amount; else exp += t.amount; });
-      const bal = inc - exp;
+      const myName = S.profile.name || '';
+      const partnerName = S.partnerProfile ? S.partnerProfile.name : '';
+      const allCards = Object.values(S.cards || {});
+      const myCards = !partnerName ? allCards : activePerson === 'me'
+        ? allCards.filter(c => c.addedBy === myName || !c.addedBy)
+        : allCards.filter(c => c.addedBy === partnerName);
+      let cardsBal = 0; myCards.forEach(cd => { if (cd.type !== 'credit') cardsBal += cd.balance || 0; });
+      const bal = inc - exp + cardsBal;
       const be = g('home-balance'); if (be) { be.textContent = fmt(bal); be.style.color = bal >= 0 ? 'white' : '#fca5a5'; }
       el('home-income', fmt(inc)); el('home-expense', fmt(exp));
+      el('home-cards-total', fmt(cardsBal));
       el('home-month-label', MONTHS[NOW.getMonth()] + ' ' + NOW.getFullYear());
       el('streak-count', S.profile.streak || 0);
       renderXP(); renderStreakWeek(); renderRecentTxs();
