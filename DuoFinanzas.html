@@ -2543,7 +2543,7 @@
     function renderCardSelect(selId,includeCredit,includeCash){
       const cards=getMyCards(includeCredit);
       let html=includeCash?'<option value="">💵 Efectivo (sin tarjeta)</option>':'<option value="">— Seleccionar —</option>';
-      cards.forEach(c=>{const bal=c.type==='credit'?fmt(c.available||0):fmt(c.balance||0);html+=`<option value="${c.id}">${c.name} (${bal})</option>`;});
+      cards.forEach(c=>{const bal=c.type==='credit'?fmt(c.available||0):fmt(c.balance||0);const l4=c.last4?' •'+c.last4:'';html+=`<option value="${c.id}">${c.name}${l4} (${bal})</option>`;});
       const sel=g(selId);if(sel)sel.innerHTML=html;
     }
     function openAddTransaction() {
