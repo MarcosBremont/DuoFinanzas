@@ -3068,24 +3068,7 @@
     }
 
     async function processAutoCharges(){
-      const today=new Date();
-      const dayOfMonth=today.getDate();
-      const thisMonth=today.getFullYear()+'-'+(today.getMonth()+1);
-      const myName=S.profile.name||'';
-      for(const[id,sub]of Object.entries(S.subs)){
-        // Only charge my own subs
-        if(sub.addedBy&&sub.addedBy!==myName)continue;
-        // Check if due today and not yet charged this month
-        if(sub.chargeDay===dayOfMonth&&sub.lastCharged!==thisMonth&&sub.cardId){
-          // Charge the card
-          await updateCardBalance(sub.cardId,-sub.amount);
-          // Record as transaction
-          await saveTx({type:'expense',amount:sub.amount,desc:sub.name+' (auto)',category:'services',date:today.toISOString().slice(0,10),addedBy:myName,timestamp:Date.now(),cardId:sub.cardId,isAutoCharge:true});
-          // Mark as charged
-          await db.ref(path()+'/subs/'+id+'/lastCharged').set(thisMonth);
-          showToast('🔄 '+sub.name+' cobrado: '+fmt(sub.amount));
-        }
-      }
+      // No auto-charge — all payments are manual via "Pagar ahora"
     }
 
     // ════════════════════════════════════
