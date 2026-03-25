@@ -2784,7 +2784,7 @@
       const myName=S.profile.name||'';
       const debitCards=Object.entries(S.cards).filter(([k,c])=>(c.addedBy===myName||!c.addedBy)&&c.type!=='credit').map(([k,c])=>({id:k,...c}));
       let html='<option value="">— Seleccionar —</option>';
-      debitCards.forEach(c=>{html+=`<option value="${c.id}">${c.name} (${fmt(c.balance||0)})</option>`;});
+      debitCards.forEach(c=>{const l4=c.last4?' •'+c.last4:'';html+=`<option value="${c.id}">${c.name}${l4} (${fmt(c.balance||0)})</option>`;});
       g('pay-credit-source').innerHTML=html;
       openModal('pay-credit-modal');
     }
