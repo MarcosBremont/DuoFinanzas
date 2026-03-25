@@ -2346,7 +2346,7 @@
         : allLoans.filter(l => l.addedBy === partnerName);
       let loansLent=0,loansOwed=0;
       myLoans.forEach(l=>{const rem=(l.amount||0)-(l.paid||0);if(rem>0){if(l.direction==='lent')loansLent+=rem;else loansOwed+=rem;}});
-      const bal = cardsBal - creditDebt - loansOwed;
+      const bal = cardsBal;
       const be = g('home-balance'); if (be) { be.textContent = fmt(bal); be.style.color = bal >= 0 ? 'white' : '#fca5a5'; }
       el('home-income', fmt(inc)); el('home-expense', fmt(exp));
       el('home-cards-total', fmt(cardsBal));
