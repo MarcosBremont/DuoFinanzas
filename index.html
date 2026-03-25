@@ -2797,7 +2797,11 @@
       await updateCardBalance(sourceId,-amount);
       // Add available to credit card
       await updateCardBalance(_payCardId,amount);
+      // Record as transaction
+      const creditCard=S.cards[_payCardId]||{};
+      await saveTx({type:'expense',amount,desc:'Pago TC: '+(creditCard.name||'Crédito'),category:'services',date:new Date().toISOString().slice(0,10),addedBy:S.profile.name||'Usuario',timestamp:Date.now(),cardId:sourceId});
       closeModal('pay-credit-modal');
+      renderAll();
       showToast('✅ Pago de '+fmt(amount)+' aplicado');
     }
 
